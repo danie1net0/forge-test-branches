@@ -1,0 +1,22 @@
+#!/usr/bin/env sh
+. "$(dirname "$0")/common.sh"
+
+git merge HEAD &> /dev/null
+IS_MERGE_PROCESS=$?
+
+if [ $IS_MERGE_PROCESS -ne 0 ]; then
+    exit 0
+fi
+
+STAGED_FILES=$(git diff --cached --name-only)
+
+if [ -z "$STAGED_FILES" ]; then
+    exit 0
+fi
+
+echo "Formatting code..."
+run_composer_script format
+
+git add $STAGED_FILES
+
+echo "Code formatted successfully!"
