@@ -1,23 +1,25 @@
 <?php
 
-namespace VendorName\Skeleton\Tests;
+namespace Ddr\ForgeTestBranches\Tests;
 
+use Override;
 use Illuminate\Database\Eloquent\Factories\Factory;
 use Orchestra\Testbench\TestCase as Orchestra;
-use VendorName\Skeleton\SkeletonServiceProvider;
+use Ddr\ForgeTestBranches\ForgeTestBranchesServiceProvider;
 
 class TestCase extends Orchestra
 {
+    #[Override]
     protected function setUp(): void
     {
         parent::setUp();
 
         Factory::guessFactoryNamesUsing(
-            fn (string $modelName) => 'VendorName\\Skeleton\\Database\\Factories\\' . class_basename($modelName) . 'Factory'
+            fn (string $modelName): string => 'Ddr\\ForgeTestBranches\\Database\\Factories\\' . class_basename($modelName) . 'Factory'
         );
     }
 
-    public function getEnvironmentSetUp($app): void
+    protected function getEnvironmentSetUp($app): void
     {
         config()->set('database.default', 'testing');
 
@@ -31,7 +33,7 @@ class TestCase extends Orchestra
     protected function getPackageProviders($app): array
     {
         return [
-            SkeletonServiceProvider::class,
+            ForgeTestBranchesServiceProvider::class,
         ];
     }
 }

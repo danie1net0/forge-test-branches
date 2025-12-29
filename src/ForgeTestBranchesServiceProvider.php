@@ -1,11 +1,11 @@
 <?php
 
-namespace VendorName\Skeleton;
+namespace Ddr\ForgeTestBranches;
 
 use Spatie\LaravelPackageTools\{Package, PackageServiceProvider};
-use VendorName\Skeleton\Commands\SkeletonCommand;
+use Ddr\ForgeTestBranches\Commands\ForgeTestBranchesCommand;
 
-class SkeletonServiceProvider extends PackageServiceProvider
+class ForgeTestBranchesServiceProvider extends PackageServiceProvider
 {
     public function configurePackage(Package $package): void
     {
@@ -15,10 +15,10 @@ class SkeletonServiceProvider extends PackageServiceProvider
          * More info: https://github.com/spatie/laravel-package-tools
          */
         $package
-            ->name('skeleton')
+            ->name('forge-test-branches')
             ->hasConfigFile()
             ->hasViews()
-            ->hasMigration('create_migration_table_name_table')
-            ->hasCommand(SkeletonCommand::class);
+            ->hasMigration('create_forge_test_branches_table')
+            ->hasCommand(ForgeTestBranchesCommand::class);
     }
 }

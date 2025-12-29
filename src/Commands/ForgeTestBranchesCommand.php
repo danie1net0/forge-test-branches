@@ -1,12 +1,12 @@
 <?php
 
-namespace VendorName\Skeleton\Commands;
+namespace Ddr\ForgeTestBranches\Commands;
 
 use Illuminate\Console\Command;
 
-class SkeletonCommand extends Command
+class ForgeTestBranchesCommand extends Command
 {
-    public $signature = 'skeleton';
+    public $signature = 'forge-test-branches';
 
     public $description = 'My command';
 

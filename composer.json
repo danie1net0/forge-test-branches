@@ -1,17 +1,17 @@
 {
-  "name": ":vendor_slug/:package_slug",
-  "description": ":package_description",
+  "name": "ddr/forge-test-branches",
+  "description": "This is my package forge-test-branches",
   "keywords": [
-    ":vendor_name",
+    "Daniel Neto",
     "laravel",
-    ":package_slug"
+    "forge-test-branches"
   ],
-  "homepage": "https://github.com/:vendor_slug/:package_slug",
+  "homepage": "https://github.com/danie1net0/forge-test-branches",
   "license": "MIT",
   "authors": [
     {
-      "name": ":author_name",
-      "email": "author@domain.com",
+      "name": "Daniel Neto",
+      "email": "danielneto314@gmail.com",
       "role": "Developer"
     }
   ],
@@ -31,18 +31,17 @@
     "pestphp/pest-plugin-laravel": "^4.0",
     "phpstan/extension-installer": "^1.4",
     "phpstan/phpstan-deprecation-rules": "^2.0",
-    "phpstan/phpstan-phpunit": "^2.0",
-    "spatie/laravel-ray": "^1.35"
+    "phpstan/phpstan-phpunit": "^2.0"
   },
   "autoload": {
     "psr-4": {
-      "VendorName\\Skeleton\\": "src/",
-      "VendorName\\Skeleton\\Database\\Factories\\": "database/factories/"
+      "Ddr\\ForgeTestBranches\\": "src/",
+      "Ddr\\ForgeTestBranches\\Database\\Factories\\": "database/factories/"
     }
   },
   "autoload-dev": {
     "psr-4": {
-      "VendorName\\Skeleton\\Tests\\": "tests/",
+      "Ddr\\ForgeTestBranches\\Tests\\": "tests/",
       "Workbench\\App\\": "workbench/app/"
     }
   },
@@ -80,10 +79,10 @@
   "extra": {
     "laravel": {
       "providers": [
-        "VendorName\\Skeleton\\SkeletonServiceProvider"
+        "Ddr\\ForgeTestBranches\\ForgeTestBranchesServiceProvider"
       ],
       "aliases": {
-        "Skeleton": "VendorName\\Skeleton\\Facades\\Skeleton"
+        "ForgeTestBranches": "Ddr\\ForgeTestBranches\\Facades\\ForgeTestBranches"
       }
     }
   },
