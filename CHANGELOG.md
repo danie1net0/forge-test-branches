@@ -1,3 +1,10 @@
+# 1.0.0 (2025-12-29)
+
+
+### Features
+
+* implement review environment creation on Laravel Forge ([458a5fb](https://github.com/danie1net0/forge-test-branches/commit/458a5fbf5affa7036ca7bc383ab585638dcd8520))
+
 # 1.0.0 (2025-12-27)
 
 ### Bug Fixes
