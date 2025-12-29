@@ -1,24 +1,44 @@
 <?php
 
+declare(strict_types=1);
+
 namespace Ddr\ForgeTestBranches;
 
+use Ddr\ForgeTestBranches\Integrations\Forge\ForgeClient;
 use Spatie\LaravelPackageTools\{Package, PackageServiceProvider};
-use Ddr\ForgeTestBranches\Commands\ForgeTestBranchesCommand;
+use Ddr\ForgeTestBranches\Commands\{CreateEnvironmentCommand, DeployEnvironmentCommand, DestroyEnvironmentCommand, InstallCommand};
+use Ddr\ForgeTestBranches\Services\{BranchSanitizer, DeploymentScriptBuilder, DomainBuilder, EnvironmentBuilder};
 
 class ForgeTestBranchesServiceProvider extends PackageServiceProvider
 {
     public function configurePackage(Package $package): void
     {
-        /*
-         * This class is a Package Service Provider
-         *
-         * More info: https://github.com/spatie/laravel-package-tools
-         */
         $package
             ->name('forge-test-branches')
             ->hasConfigFile()
-            ->hasViews()
-            ->hasMigration('create_forge_test_branches_table')
-            ->hasCommand(ForgeTestBranchesCommand::class);
+            ->hasMigration('create_review_environments_table')
+            ->hasCommands([
+                InstallCommand::class,
+                CreateEnvironmentCommand::class,
+                DestroyEnvironmentCommand::class,
+                DeployEnvironmentCommand::class,
+            ]);
+    }
+
+    public function packageRegistered(): void
+    {
+        $this->app->singleton(ForgeClient::class, fn (): ForgeClient => new ForgeClient());
+        $this->app->singleton(BranchSanitizer::class);
+        $this->app->singleton(DomainBuilder::class);
+        $this->app->singleton(DeploymentScriptBuilder::class);
+        $this->app->singleton(EnvironmentBuilder::class);
+        $this->app->singleton(ForgeTestBranches::class);
+    }
+
+    public function packageBooted(): void
+    {
+        if (config('forge-test-branches.webhook.enabled')) {
+            $this->loadRoutesFrom(__DIR__ . '/../routes/webhook.php');
+        }
     }
 }

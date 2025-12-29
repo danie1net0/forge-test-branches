@@ -1,0 +1,27 @@
+# Review Apps - Forge Test Branches
+# Adicione este conteúdo ao seu .gitlab-ci.yml
+#
+# IMPORTANTE: Para deleção automática ao deletar branch (após merge),
+# configure o webhook do GitLab conforme instruções no README.
+
+stages:
+  - review
+
+# Cria o ambiente (se não existe) e faz deploy (manual)
+review_app:
+  stage: review
+  image: php:8.4-cli
+  before_script:
+    - apt-get update && apt-get install -y git unzip
+    - curl -sS https://getcomposer.org/installer | php -- --install-dir=/usr/local/bin --filename=composer
+    - composer install --no-interaction --prefer-dist
+  script:
+    - php artisan forge-test-branches:create --branch=$CI_COMMIT_REF_NAME
+    - php artisan forge-test-branches:deploy --branch=$CI_COMMIT_REF_NAME
+  environment:
+    name: review/$CI_COMMIT_REF_SLUG
+    url: https://$CI_COMMIT_REF_SLUG.review.example.com
+  rules:
+    - if: $CI_MERGE_REQUEST_ID
+      when: manual
+      allow_failure: true

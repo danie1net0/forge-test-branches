@@ -6,6 +6,7 @@ use Rector\CodeQuality\Rector\ClassMethod\InlineArrayReturnAssignRector;
 use Rector\CodingStyle\Rector\Encapsed\EncapsedStringsToSprintfRector;
 use Rector\Config\RectorConfig;
 use Rector\Set\ValueObject\{LevelSetList, SetList};
+use RectorLaravel\Rector\Coalesce\ApplyDefaultInsteadOfNullCoalesceRector;
 use RectorLaravel\Set\LaravelSetList;
 
 return RectorConfig::configure()
@@ -17,6 +18,9 @@ return RectorConfig::configure()
         __DIR__ . '/vendor',
         EncapsedStringsToSprintfRector::class,
         InlineArrayReturnAssignRector::class,
+        ApplyDefaultInsteadOfNullCoalesceRector::class => [
+            __DIR__ . '/src/Commands/InstallCommand.php',
+        ],
     ])
     ->withPhpSets(php84: true)
     ->withPreparedSets(

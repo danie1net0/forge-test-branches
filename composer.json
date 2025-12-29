@@ -1,10 +1,12 @@
 {
   "name": "ddr/forge-test-branches",
-  "description": "This is my package forge-test-branches",
+  "description": "Create ephemeral test environments from git branches on Laravel Forge",
   "keywords": [
-    "Daniel Neto",
     "laravel",
-    "forge-test-branches"
+    "forge",
+    "review-apps",
+    "ephemeral-environments",
+    "gitlab-ci"
   ],
   "homepage": "https://github.com/danie1net0/forge-test-branches",
   "license": "MIT",
@@ -17,8 +19,11 @@
   ],
   "require": {
     "php": "^8.4",
-    "spatie/laravel-package-tools": "^1.16",
-    "illuminate/contracts": "^11.0||^12.0"
+    "illuminate/contracts": "^11.0||^12.0",
+    "saloonphp/laravel-plugin": "^3.0",
+    "saloonphp/saloon": "^3.0",
+    "spatie/laravel-data": "^4.0",
+    "spatie/laravel-package-tools": "^1.16"
   },
   "require-dev": {
     "driftingly/rector-laravel": "^2.0",
