@@ -7,7 +7,7 @@ namespace Ddr\ForgeTestBranches;
 use Ddr\ForgeTestBranches\Integrations\Forge\ForgeClient;
 use Spatie\LaravelPackageTools\{Package, PackageServiceProvider};
 use Ddr\ForgeTestBranches\Commands\{CreateEnvironmentCommand, DeployEnvironmentCommand, DestroyEnvironmentCommand, InstallCommand};
-use Ddr\ForgeTestBranches\Services\{BranchSanitizer, DeploymentScriptBuilder, DomainBuilder, EnvironmentBuilder};
+use Ddr\ForgeTestBranches\Services\{BranchPatternMatcher, BranchSanitizer, DeploymentScriptBuilder, DomainBuilder, EnvironmentBuilder};
 
 class ForgeTestBranchesServiceProvider extends PackageServiceProvider
 {
@@ -28,6 +28,7 @@ class ForgeTestBranchesServiceProvider extends PackageServiceProvider
     public function packageRegistered(): void
     {
         $this->app->singleton(ForgeClient::class, fn (): ForgeClient => new ForgeClient());
+        $this->app->singleton(BranchPatternMatcher::class);
         $this->app->singleton(BranchSanitizer::class);
         $this->app->singleton(DomainBuilder::class);
         $this->app->singleton(DeploymentScriptBuilder::class);

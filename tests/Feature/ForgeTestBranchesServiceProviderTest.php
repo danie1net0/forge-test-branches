@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 use Ddr\ForgeTestBranches\ForgeTestBranches;
 use Ddr\ForgeTestBranches\Integrations\Forge\ForgeClient;
-use Ddr\ForgeTestBranches\Services\{BranchSanitizer, DeploymentScriptBuilder, DomainBuilder, EnvironmentBuilder};
+use Ddr\ForgeTestBranches\Services\{BranchPatternMatcher, BranchSanitizer, DeploymentScriptBuilder, DomainBuilder, EnvironmentBuilder};
 use Illuminate\Support\Facades\Route;
 
 beforeEach(function (): void {
@@ -21,6 +21,13 @@ test('registers ForgeClient as singleton', function (): void {
 test('registers BranchSanitizer as singleton', function (): void {
     $service1 = resolve(BranchSanitizer::class);
     $service2 = resolve(BranchSanitizer::class);
+
+    expect($service1)->toBe($service2);
+});
+
+test('registers BranchPatternMatcher as singleton', function (): void {
+    $service1 = resolve(BranchPatternMatcher::class);
+    $service2 = resolve(BranchPatternMatcher::class);
 
     expect($service1)->toBe($service2);
 });

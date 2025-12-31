@@ -6,7 +6,10 @@ use Ddr\ForgeTestBranches\Models\ReviewEnvironment;
 use Ddr\ForgeTestBranches\Services\EnvironmentBuilder;
 
 beforeEach(function (): void {
-    config(['forge-test-branches.forge_api_token' => 'fake-token']);
+    config([
+        'forge-test-branches.forge_api_token' => 'fake-token',
+        'forge-test-branches.branch.patterns' => ['*'],
+    ]);
 });
 
 test('displays error when branch is not specified', function (): void {
@@ -71,4 +74,12 @@ test('displays error when environment creation fails', function (): void {
         ->expectsOutput('Creating environment for branch: feat/error')
         ->expectsOutput('Error creating environment: API Error')
         ->assertExitCode(1);
+});
+
+test('displays warning when branch does not match allowed patterns', function (): void {
+    config(['forge-test-branches.branch.patterns' => ['feat/*', 'fix/*']]);
+
+    $this->artisan('forge-test-branches:create', ['--branch' => 'main'])
+        ->expectsOutput('Branch does not match allowed patterns: main')
+        ->assertExitCode(0);
 });

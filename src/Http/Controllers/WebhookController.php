@@ -14,15 +14,13 @@ class WebhookController extends Controller
 {
     public function handle(Request $request, EnvironmentBuilder $builder): JsonResponse
     {
-        $event = $request->header('X-Gitlab-Event');
-
-        if ($event !== 'Push Hook') {
+        if (! $this->isPushEvent($request)) {
             return response()->json(['message' => 'Event ignored']);
         }
 
         $payload = $request->all();
 
-        if (! $this->isBranchDeleted($payload)) {
+        if (! $this->isBranchDeleted($request, $payload)) {
             return response()->json(['message' => 'Not a branch deletion']);
         }
 
@@ -42,9 +40,27 @@ class WebhookController extends Controller
         }
     }
 
-    /** @param array<string, mixed> $payload */
-    protected function isBranchDeleted(array $payload): bool
+    protected function isPushEvent(Request $request): bool
     {
+        if ($this->isGitHubRequest($request)) {
+            return $request->header('X-GitHub-Event') === 'delete';
+        }
+
+        return $request->header('X-Gitlab-Event') === 'Push Hook';
+    }
+
+    protected function isGitHubRequest(Request $request): bool
+    {
+        return $request->hasHeader('X-GitHub-Event');
+    }
+
+    /** @param array<string, mixed> $payload */
+    protected function isBranchDeleted(Request $request, array $payload): bool
+    {
+        if ($this->isGitHubRequest($request)) {
+            return ($payload['ref_type'] ?? '') === 'branch';
+        }
+
         return ($payload['after'] ?? '') === '0000000000000000000000000000000000000000';
     }
 

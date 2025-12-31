@@ -14,7 +14,9 @@ Create ephemeral test environments (review apps) from git branches on Laravel Fo
 - Automatically creates and manages databases
 - Automatically configures Let's Encrypt SSL certificates
 - Integration with GitLab CI/CD and GitHub Actions
-- Webhook for automatic cleanup when branch is deleted
+- Webhook for automatic cleanup when branch is deleted (GitLab and GitHub)
+- Branch pattern filtering (only create environments for specific branches)
+- Optional database seeding after migrations
 - Artisan commands for manual management
 - Support for custom deploy scripts
 
@@ -49,7 +51,7 @@ Create ephemeral test environments (review apps) from git branches on Laravel Fo
 │   1. Branch deleted         2. Webhook triggers        3. Resources cleaned │
 │   ┌──────────────┐          ┌──────────────┐          ┌──────────────┐      │
 │   │ Merge + Del  │  ─────►  │   Webhook    │  ─────►  │ Site + DB    │      │
-│   └──────────────┘          │   GitLab     │          │   DELETED    │      │
+│   └──────────────┘          │ GitLab/GitHub│          │   DELETED    │      │
 │                             └──────────────┘          └──────────────┘      │
 │                                                                             │
 └─────────────────────────────────────────────────────────────────────────────┘
@@ -128,6 +130,8 @@ FORGE_WEBHOOK_SECRET=your-optional-secret
 | `FORGE_WEB_DIRECTORY`   | Public directory                                 | No (default: `/public`) |
 | `FORGE_ISOLATED`        | Isolated mode (dedicated user)                   | No (default: `false`)   |
 | `FORGE_DB_PREFIX`       | Database prefix                                  | No (default: `review_`) |
+| `FORGE_SEED`            | Run database seeders after migrations            | No (default: `false`)   |
+| `FORGE_SEED_CLASS`      | Specific seeder class to run                     | No                      |
 | `FORGE_WEBHOOK_ENABLED` | Enable webhook                                   | No (default: `true`)    |
 
 ### Full Configuration File
@@ -147,6 +151,10 @@ return [
         'repository' => env('FORGE_GIT_REPOSITORY'),
     ],
 
+    'branch' => [
+        'patterns' => ['*'], // ['feat/*', 'review/*', 'fix/*']
+    ],
+
     'database' => [
         'prefix' => env('FORGE_DB_PREFIX', 'review_'),
     ],
@@ -161,6 +169,8 @@ return [
     'deploy' => [
         'script' => null, // Custom script or null for default
         'quick_deploy' => true,
+        'seed' => env('FORGE_SEED', false),
+        'seed_class' => env('FORGE_SEED_CLASS'),
     ],
 
     'webhook' => [
@@ -218,6 +228,45 @@ Configure specific environment variables for review environments:
 ```
 
 The `{slug}` placeholder will be replaced with the sanitized branch slug.
+
+### Branch Pattern Filtering
+
+You can restrict which branches can create review environments using glob patterns:
+
+```php
+'branch' => [
+    'patterns' => ['feat/*', 'fix/*', 'review/*'],
+],
+```
+
+Examples:
+
+- `['*']` - All branches (default)
+- `['feat/*', 'fix/*']` - Only feature and fix branches
+- `['review/*']` - Only branches starting with `review/`
+- `['develop', 'staging']` - Only specific branch names
+
+When a branch doesn't match any pattern, the `create` command will skip environment creation without error.
+
+### Database Seeding
+
+Enable automatic database seeding after migrations:
+
+```php
+'deploy' => [
+    'seed' => true,                    // Enable seeding
+    'seed_class' => 'ReviewSeeder',    // Optional: specific seeder class
+],
+```
+
+Or via environment variables:
+
+```env
+FORGE_SEED=true
+FORGE_SEED_CLASS=ReviewSeeder
+```
+
+When enabled, the deploy script will run `php artisan db:seed --force` after migrations.
 
 ## Usage
 
@@ -323,13 +372,26 @@ A complete example file is available at `stubs/.gitlab-ci.review.yml`.
 
 To automatically destroy the environment when the branch is deleted (after merge):
 
+**GitLab:**
+
 1. Go to **Settings > Webhooks** in GitLab
 2. URL: `https://your-app.com/forge-test-branches/webhook`
 3. Secret Token: the same value as `FORGE_WEBHOOK_SECRET`
 4. Trigger: **Push events**
 5. Click **Add webhook**
 
+**GitHub:**
+
+1. Go to **Settings > Webhooks** in your repository
+2. Payload URL: `https://your-app.com/forge-test-branches/webhook`
+3. Content type: `application/json`
+4. Secret: the same value as `FORGE_WEBHOOK_SECRET`
+5. Events: Select **Branch or tag deletion**
+6. Click **Add webhook**
+
 When the branch is deleted (manually or after merge with "Delete source branch"), the webhook will be triggered and the environment will be automatically destroyed.
+
+> **Note**: The webhook supports both GitLab (token-based) and GitHub (HMAC-SHA256 signature) authentication automatically.
 
 ### GitHub Actions
 
@@ -408,9 +470,10 @@ Check if:
 
 Check if:
 
-- The `FORGE_WEBHOOK_SECRET` is configured identically in GitLab and `.env`
+- The `FORGE_WEBHOOK_SECRET` is configured identically in GitLab/GitHub and `.env`
 - The endpoint is publicly accessible
-- The webhook is configured for **Push events**
+- GitLab: The webhook is configured for **Push events**
+- GitHub: The webhook is configured for **Branch or tag deletion** events
 
 ### SSL not being generated
 

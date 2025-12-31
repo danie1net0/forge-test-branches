@@ -85,3 +85,53 @@ test('returns error when environment destruction fails', function (): void {
         ->assertStatus(500)
         ->assertJson(['message' => 'Error destroying environment', 'error' => 'API Error']);
 });
+
+test('ignores github events that are not delete', function (): void {
+    $this->postJson('/forge-test-branches/webhook', [], ['X-GitHub-Event' => 'push'])
+        ->assertOk()
+        ->assertJson(['message' => 'Event ignored']);
+});
+
+test('ignores github delete when ref_type is not branch', function (): void {
+    $this->postJson('/forge-test-branches/webhook', [
+        'ref' => 'v1.0.0',
+        'ref_type' => 'tag',
+    ], ['X-GitHub-Event' => 'delete'])
+        ->assertOk()
+        ->assertJson(['message' => 'Not a branch deletion']);
+});
+
+test('returns environment not found for nonexistent branch via github', function (): void {
+    $this->postJson('/forge-test-branches/webhook', [
+        'ref' => 'feat/nonexistent',
+        'ref_type' => 'branch',
+    ], ['X-GitHub-Event' => 'delete'])
+        ->assertOk()
+        ->assertJson(['message' => 'Environment not found']);
+});
+
+test('destroys environment via github webhook', function (): void {
+    $environment = ReviewEnvironment::query()->create([
+        'branch' => 'feat/github-destroy',
+        'slug' => 'feat-github-destroy',
+        'domain' => 'feat-github-destroy.review.example.com',
+        'server_id' => 123,
+        'site_id' => 456,
+        'database_id' => 789,
+        'database_user_id' => 101,
+    ]);
+
+    $builder = Mockery::mock(EnvironmentBuilder::class);
+    $builder->shouldReceive('destroy')
+        ->once()
+        ->withArgs(fn ($env): bool => $env->id === $environment->id);
+
+    $this->app->instance(EnvironmentBuilder::class, $builder);
+
+    $this->postJson('/forge-test-branches/webhook', [
+        'ref' => 'feat/github-destroy',
+        'ref_type' => 'branch',
+    ], ['X-GitHub-Event' => 'delete'])
+        ->assertOk()
+        ->assertJson(['message' => 'Environment destroyed successfully']);
+});

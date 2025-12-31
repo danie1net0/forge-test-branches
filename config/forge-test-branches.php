@@ -65,6 +65,23 @@ return [
 
     /*
     |--------------------------------------------------------------------------
+    | Branch Configuration
+    |--------------------------------------------------------------------------
+    |
+    | Branch filtering configuration for review environments.
+    |
+    | - patterns: Array of glob patterns to match allowed branches.
+    |             Use '*' to allow all branches (default).
+    |             Examples: ['feat/*', 'review/*', 'fix/*']
+    |
+    */
+
+    'branch' => [
+        'patterns' => ['*'],
+    ],
+
+    /*
+    |--------------------------------------------------------------------------
     | Database Configuration
     |--------------------------------------------------------------------------
     |
@@ -109,12 +126,16 @@ return [
     | - script: Custom deploy script. If null, uses Forge default
     |           with additional commands for migrations and cache.
     | - quick_deploy: Enables automatic deploy via repository push.
+    | - seed: Run database seeders after migrations (default: false)
+    | - seed_class: Specific seeder class to run (null = DatabaseSeeder)
     |
     */
 
     'deploy' => [
         'script' => null,
         'quick_deploy' => true,
+        'seed' => env('FORGE_SEED', false),
+        'seed_class' => env('FORGE_SEED_CLASS'),
     ],
 
     /*

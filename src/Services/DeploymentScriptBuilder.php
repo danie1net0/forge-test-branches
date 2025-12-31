@@ -19,6 +19,8 @@ class DeploymentScriptBuilder
 
     protected function defaultScript(string $branch): string
     {
+        $seedCommand = $this->buildSeedCommand();
+
         return <<<BASH
         cd \$FORGE_SITE_PATH
         git pull origin {$branch}
@@ -29,11 +31,26 @@ class DeploymentScriptBuilder
             echo 'Restarting FPM...'; sudo -S service \$FORGE_PHP_FPM reload ) 9>/tmp/fpmlock
 
         if [ -f artisan ]; then
-            \$FORGE_PHP artisan migrate --force
+            \$FORGE_PHP artisan migrate --force{$seedCommand}
             \$FORGE_PHP artisan config:cache
             \$FORGE_PHP artisan route:cache
             \$FORGE_PHP artisan view:cache
         fi
         BASH;
+    }
+
+    protected function buildSeedCommand(): string
+    {
+        if (! config('forge-test-branches.deploy.seed')) {
+            return '';
+        }
+
+        $seedClass = config('forge-test-branches.deploy.seed_class');
+
+        if ($seedClass) {
+            return "\n        \$FORGE_PHP artisan db:seed --class={$seedClass} --force";
+        }
+
+        return "\n        \$FORGE_PHP artisan db:seed --force";
     }
 }

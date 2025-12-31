@@ -20,6 +20,7 @@ return RectorConfig::configure()
         InlineArrayReturnAssignRector::class,
         ApplyDefaultInsteadOfNullCoalesceRector::class => [
             __DIR__ . '/src/Commands/InstallCommand.php',
+            __DIR__ . '/src/Services/BranchPatternMatcher.php',
         ],
     ])
     ->withPhpSets(php84: true)
