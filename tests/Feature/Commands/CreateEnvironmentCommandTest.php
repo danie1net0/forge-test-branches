@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-use Ddr\ForgeTestBranches\Models\ReviewEnvironment;
+use Ddr\ForgeTestBranches\Data\EnvironmentData;
 use Ddr\ForgeTestBranches\Services\EnvironmentBuilder;
 
 beforeEach(function (): void {
@@ -12,22 +12,35 @@ beforeEach(function (): void {
     ]);
 });
 
-test('displays error when branch is not specified', function (): void {
+function makeEnvironmentData(string $branch, string $slug): EnvironmentData
+{
+    return new EnvironmentData(
+        branch: $branch,
+        slug: $slug,
+        domain: "{$slug}.review.example.com",
+        serverId: 123,
+        siteId: 456,
+        databaseId: 789,
+        databaseUserId: 101,
+    );
+}
+
+test('exibe erro quando branch não é especificada', function (): void {
     $this->artisan('forge-test-branches:create')
         ->expectsOutput('Branch not specified. Use --branch=branch-name or set CI_COMMIT_REF_NAME')
         ->assertExitCode(1);
 });
 
-test('displays warning when environment already exists', function (): void {
-    ReviewEnvironment::query()->create([
-        'branch' => 'feat/existing',
-        'slug' => 'feat-existing',
-        'domain' => 'feat-existing.review.example.com',
-        'server_id' => 123,
-        'site_id' => 456,
-        'database_id' => 789,
-        'database_user_id' => 101,
-    ]);
+test('exibe aviso quando ambiente já existe', function (): void {
+    $environment = makeEnvironmentData('feat/existing', 'feat-existing');
+
+    $builder = Mockery::mock(EnvironmentBuilder::class);
+    $builder->shouldReceive('find')
+        ->once()
+        ->with('feat/existing')
+        ->andReturn($environment);
+
+    $this->app->instance(EnvironmentBuilder::class, $builder);
 
     $this->artisan('forge-test-branches:create', ['--branch' => 'feat/existing'])
         ->expectsOutput('Environment already exists for branch: feat/existing')
@@ -35,18 +48,14 @@ test('displays warning when environment already exists', function (): void {
         ->assertExitCode(0);
 });
 
-test('creates environment successfully', function (): void {
-    $environment = new ReviewEnvironment([
-        'branch' => 'feat/new',
-        'slug' => 'feat-new',
-        'domain' => 'feat-new.review.example.com',
-        'server_id' => 123,
-        'site_id' => 456,
-        'database_id' => 789,
-        'database_user_id' => 101,
-    ]);
+test('cria ambiente com sucesso', function (): void {
+    $environment = makeEnvironmentData('feat/new', 'feat-new');
 
     $builder = Mockery::mock(EnvironmentBuilder::class);
+    $builder->shouldReceive('find')
+        ->once()
+        ->with('feat/new')
+        ->andReturnNull();
     $builder->shouldReceive('create')
         ->once()
         ->with('feat/new')
@@ -61,8 +70,12 @@ test('creates environment successfully', function (): void {
         ->assertExitCode(0);
 });
 
-test('displays error when environment creation fails', function (): void {
+test('exibe erro quando criação do ambiente falha', function (): void {
     $builder = Mockery::mock(EnvironmentBuilder::class);
+    $builder->shouldReceive('find')
+        ->once()
+        ->with('feat/error')
+        ->andReturnNull();
     $builder->shouldReceive('create')
         ->once()
         ->with('feat/error')
@@ -76,7 +89,7 @@ test('displays error when environment creation fails', function (): void {
         ->assertExitCode(1);
 });
 
-test('displays warning when branch does not match allowed patterns', function (): void {
+test('exibe aviso quando branch não corresponde aos padrões permitidos', function (): void {
     config(['forge-test-branches.branch.patterns' => ['feat/*', 'fix/*']]);
 
     $this->artisan('forge-test-branches:create', ['--branch' => 'main'])

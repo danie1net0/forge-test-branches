@@ -16,7 +16,6 @@ class ForgeTestBranchesServiceProvider extends PackageServiceProvider
         $package
             ->name('forge-test-branches')
             ->hasConfigFile()
-            ->hasMigration('create_review_environments_table')
             ->hasCommands([
                 InstallCommand::class,
                 CreateEnvironmentCommand::class,

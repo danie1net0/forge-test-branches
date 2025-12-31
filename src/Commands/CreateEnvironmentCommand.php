@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace Ddr\ForgeTestBranches\Commands;
 
-use Ddr\ForgeTestBranches\Models\ReviewEnvironment;
+use Ddr\ForgeTestBranches\Data\EnvironmentData;
 use Ddr\ForgeTestBranches\Services\{BranchPatternMatcher, EnvironmentBuilder};
 use Illuminate\Console\Command;
 use Throwable;
@@ -31,11 +31,11 @@ class CreateEnvironmentCommand extends Command
             return self::SUCCESS;
         }
 
-        $existing = ReviewEnvironment::query()->where('branch', $branch)->first();
+        $existingEnvironment = $builder->find($branch);
 
-        if ($existing) {
+        if ($existingEnvironment instanceof EnvironmentData) {
             $this->warn("Environment already exists for branch: {$branch}");
-            $this->info("URL: https://{$existing->domain}");
+            $this->info("URL: https://{$existingEnvironment->domain}");
 
             return self::SUCCESS;
         }

@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace Ddr\ForgeTestBranches\Http\Controllers;
 
-use Ddr\ForgeTestBranches\Models\ReviewEnvironment;
+use Ddr\ForgeTestBranches\Data\EnvironmentData;
 use Ddr\ForgeTestBranches\Services\EnvironmentBuilder;
 use Illuminate\Http\{JsonResponse, Request};
 use Illuminate\Routing\Controller;
@@ -25,9 +25,9 @@ class WebhookController extends Controller
         }
 
         $branch = $this->extractBranch($payload);
-        $environment = ReviewEnvironment::query()->where('branch', $branch)->first();
+        $environment = $builder->find($branch);
 
-        if (! $environment) {
+        if (! $environment instanceof EnvironmentData) {
             return response()->json(['message' => 'Environment not found']);
         }
 

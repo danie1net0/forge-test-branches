@@ -2,40 +2,57 @@
 
 declare(strict_types=1);
 
-use Ddr\ForgeTestBranches\Models\ReviewEnvironment;
+use Ddr\ForgeTestBranches\Data\EnvironmentData;
 use Ddr\ForgeTestBranches\Services\EnvironmentBuilder;
 
 beforeEach(function (): void {
     config(['forge-test-branches.forge_api_token' => 'fake-token']);
 });
 
-test('displays error when branch is not specified', function (): void {
+function makeEnvData(string $branch, string $slug): EnvironmentData
+{
+    return new EnvironmentData(
+        branch: $branch,
+        slug: $slug,
+        domain: "{$slug}.review.example.com",
+        serverId: 123,
+        siteId: 456,
+        databaseId: 789,
+        databaseUserId: 101,
+    );
+}
+
+test('exibe erro quando branch não é especificada', function (): void {
     $this->artisan('forge-test-branches:deploy')
         ->expectsOutput('Branch not specified. Use --branch=branch-name or set CI_COMMIT_REF_NAME')
         ->assertExitCode(1);
 });
 
-test('displays error when environment does not exist', function (): void {
+test('exibe erro quando ambiente não existe', function (): void {
+    $builder = Mockery::mock(EnvironmentBuilder::class);
+    $builder->shouldReceive('find')
+        ->once()
+        ->with('feat/nonexistent')
+        ->andReturnNull();
+
+    $this->app->instance(EnvironmentBuilder::class, $builder);
+
     $this->artisan('forge-test-branches:deploy', ['--branch' => 'feat/nonexistent'])
         ->expectsOutput('Environment not found for branch: feat/nonexistent')
         ->assertExitCode(1);
 });
 
-test('deploys successfully', function (): void {
-    $environment = ReviewEnvironment::query()->create([
-        'branch' => 'feat/to-deploy',
-        'slug' => 'feat-to-deploy',
-        'domain' => 'feat-to-deploy.review.example.com',
-        'server_id' => 123,
-        'site_id' => 456,
-        'database_id' => 789,
-        'database_user_id' => 101,
-    ]);
+test('faz deploy com sucesso', function (): void {
+    $environment = makeEnvData('feat/to-deploy', 'feat-to-deploy');
 
     $builder = Mockery::mock(EnvironmentBuilder::class);
+    $builder->shouldReceive('find')
+        ->once()
+        ->with('feat/to-deploy')
+        ->andReturn($environment);
     $builder->shouldReceive('deploy')
         ->once()
-        ->withArgs(fn ($env): bool => $env->id === $environment->id);
+        ->with($environment);
 
     $this->app->instance(EnvironmentBuilder::class, $builder);
 
@@ -45,18 +62,14 @@ test('deploys successfully', function (): void {
         ->assertExitCode(0);
 });
 
-test('displays error when deploy fails', function (): void {
-    ReviewEnvironment::query()->create([
-        'branch' => 'feat/error',
-        'slug' => 'feat-error',
-        'domain' => 'feat-error.review.example.com',
-        'server_id' => 123,
-        'site_id' => 456,
-        'database_id' => 789,
-        'database_user_id' => 101,
-    ]);
+test('exibe erro quando deploy falha', function (): void {
+    $environment = makeEnvData('feat/error', 'feat-error');
 
     $builder = Mockery::mock(EnvironmentBuilder::class);
+    $builder->shouldReceive('find')
+        ->once()
+        ->with('feat/error')
+        ->andReturn($environment);
     $builder->shouldReceive('deploy')
         ->once()
         ->andThrow(new RuntimeException('API Error'));

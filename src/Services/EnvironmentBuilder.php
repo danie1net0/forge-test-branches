@@ -4,9 +4,8 @@ declare(strict_types=1);
 
 namespace Ddr\ForgeTestBranches\Services;
 
-use Ddr\ForgeTestBranches\Data\{CreateDatabaseData, CreateDatabaseUserData, CreateSiteData, DatabaseData, DatabaseUserData, InstallGitRepositoryData, SiteData};
+use Ddr\ForgeTestBranches\Data\{CreateDatabaseData, CreateDatabaseUserData, CreateSiteData, DatabaseData, DatabaseUserData, EnvironmentData, InstallGitRepositoryData, SiteData};
 use Ddr\ForgeTestBranches\Integrations\Forge\ForgeClient;
-use Ddr\ForgeTestBranches\Models\ReviewEnvironment;
 use Illuminate\Support\Str;
 
 class EnvironmentBuilder
@@ -19,7 +18,7 @@ class EnvironmentBuilder
     ) {
     }
 
-    public function create(string $branch): ReviewEnvironment
+    public function create(string $branch): EnvironmentData
     {
         $slug = $this->sanitizer->sanitize($branch);
         $domain = $this->domainBuilder->build($slug);
@@ -38,35 +37,77 @@ class EnvironmentBuilder
 
         $this->forge->sites()->deploy($serverId, $site->id);
 
-        return ReviewEnvironment::query()->create([
-            'branch' => $branch,
-            'slug' => $slug,
-            'domain' => $domain,
-            'server_id' => $serverId,
-            'site_id' => $site->id,
-            'database_id' => $database->id,
-            'database_user_id' => $databaseUser->id,
-        ]);
+        return new EnvironmentData(
+            branch: $branch,
+            slug: $slug,
+            domain: $domain,
+            serverId: $serverId,
+            siteId: $site->id,
+            databaseId: $database->id,
+            databaseUserId: $databaseUser->id,
+        );
     }
 
-    public function destroy(ReviewEnvironment $environment): void
+    public function find(string $branch): ?EnvironmentData
     {
-        $this->forge->sites()->delete($environment->server_id, $environment->site_id);
-        $this->forge->databaseUsers()->delete($environment->server_id, $environment->database_user_id);
-        $this->forge->databases()->delete($environment->server_id, $environment->database_id);
+        $slug = $this->sanitizer->sanitize($branch);
+        $domain = $this->domainBuilder->build($slug);
+        $serverId = (int) config('forge-test-branches.server_id');
 
-        $environment->delete();
+        $site = $this->forge->sites()->findByDomain($serverId, $domain);
+
+        if (! $site instanceof SiteData) {
+            return null;
+        }
+
+        $databaseName = $this->buildDatabaseName($slug);
+        $database = $this->forge->databases()->findByName($serverId, $databaseName);
+        $databaseUser = $this->forge->databaseUsers()->findByName($serverId, $databaseName);
+
+        return new EnvironmentData(
+            branch: $branch,
+            slug: $slug,
+            domain: $domain,
+            serverId: $serverId,
+            siteId: $site->id,
+            databaseId: $database?->id,
+            databaseUserId: $databaseUser?->id,
+        );
     }
 
-    public function deploy(ReviewEnvironment $environment): void
+    public function exists(string $branch): bool
     {
-        $this->forge->sites()->deploy($environment->server_id, $environment->site_id);
+        return $this->find($branch) instanceof EnvironmentData;
+    }
+
+    public function destroy(EnvironmentData $environment): void
+    {
+        $this->forge->sites()->delete($environment->serverId, $environment->siteId);
+
+        if ($environment->databaseUserId) {
+            $this->forge->databaseUsers()->delete($environment->serverId, $environment->databaseUserId);
+        }
+
+        if ($environment->databaseId) {
+            $this->forge->databases()->delete($environment->serverId, $environment->databaseId);
+        }
+    }
+
+    public function deploy(EnvironmentData $environment): void
+    {
+        $this->forge->sites()->deploy($environment->serverId, $environment->siteId);
+    }
+
+    protected function buildDatabaseName(string $slug): string
+    {
+        $prefix = config('forge-test-branches.database.prefix');
+
+        return $prefix . str_replace('-', '_', $slug);
     }
 
     protected function createDatabase(int $serverId, string $slug): DatabaseData
     {
-        $prefix = config('forge-test-branches.database.prefix');
-        $name = $prefix . str_replace('-', '_', $slug);
+        $name = $this->buildDatabaseName($slug);
 
         return $this->forge->databases()->create(
             $serverId,
@@ -77,8 +118,7 @@ class EnvironmentBuilder
     /** @return array{DatabaseUserData, string} */
     protected function createDatabaseUser(int $serverId, string $slug, DatabaseData $database): array
     {
-        $prefix = config('forge-test-branches.database.prefix');
-        $name = $prefix . str_replace('-', '_', $slug);
+        $name = $this->buildDatabaseName($slug);
         $password = Str::password(32);
 
         $user = $this->forge->databaseUsers()->create(

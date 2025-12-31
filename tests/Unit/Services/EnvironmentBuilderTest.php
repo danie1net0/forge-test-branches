@@ -1,10 +1,11 @@
 <?php
 
-use Ddr\ForgeTestBranches\Data\{DatabaseData, DatabaseUserData, SiteData};
-use Ddr\ForgeTestBranches\Services\{BranchSanitizer, DeploymentScriptBuilder, DomainBuilder, EnvironmentBuilder};
-use Ddr\ForgeTestBranches\Integrations\Forge\Resources\{DatabaseResource, DatabaseUserResource, SiteResource};
+declare(strict_types=1);
+
+use Ddr\ForgeTestBranches\Data\{DatabaseData, DatabaseUserData, EnvironmentData, SiteData};
 use Ddr\ForgeTestBranches\Integrations\Forge\ForgeClient;
-use Ddr\ForgeTestBranches\Models\ReviewEnvironment;
+use Ddr\ForgeTestBranches\Integrations\Forge\Resources\{DatabaseResource, DatabaseUserResource, SiteResource};
+use Ddr\ForgeTestBranches\Services\{BranchSanitizer, DeploymentScriptBuilder, DomainBuilder, EnvironmentBuilder};
 
 beforeEach(function (): void {
     config([
@@ -62,7 +63,17 @@ function makeSiteData(int $id, string $name): SiteData
     );
 }
 
-test('creates complete environment successfully', function (): void {
+function makeEnvironmentBuilder(ForgeClient $forgeClient): EnvironmentBuilder
+{
+    return new EnvironmentBuilder(
+        $forgeClient,
+        new BranchSanitizer(),
+        new DomainBuilder(),
+        new DeploymentScriptBuilder(),
+    );
+}
+
+test('cria ambiente completo com sucesso', function (): void {
     $databaseResource = Mockery::mock(DatabaseResource::class);
     $databaseUserResource = Mockery::mock(DatabaseUserResource::class);
     $siteResource = Mockery::mock(SiteResource::class);
@@ -97,35 +108,117 @@ test('creates complete environment successfully', function (): void {
     $forgeClient->shouldReceive('databaseUsers')->andReturn($databaseUserResource);
     $forgeClient->shouldReceive('sites')->andReturn($siteResource);
 
-    $builder = new EnvironmentBuilder(
-        $forgeClient,
-        new BranchSanitizer(),
-        new DomainBuilder(),
-        new DeploymentScriptBuilder(),
-    );
-
+    $builder = makeEnvironmentBuilder($forgeClient);
     $environment = $builder->create('feat/hu-123');
 
-    expect($environment)->toBeInstanceOf(ReviewEnvironment::class)
+    expect($environment)->toBeInstanceOf(EnvironmentData::class)
         ->and($environment->branch)->toBe('feat/hu-123')
         ->and($environment->slug)->toBe('feat-hu-123')
         ->and($environment->domain)->toBe('feat-hu-123.review.example.com')
-        ->and($environment->server_id)->toBe(12345)
-        ->and($environment->site_id)->toBe(100)
-        ->and($environment->database_id)->toBe(1)
-        ->and($environment->database_user_id)->toBe(2);
+        ->and($environment->serverId)->toBe(12345)
+        ->and($environment->siteId)->toBe(100)
+        ->and($environment->databaseId)->toBe(1)
+        ->and($environment->databaseUserId)->toBe(2);
 });
 
-test('destroys environment removing resources in correct order', function (): void {
-    $environment = ReviewEnvironment::query()->create([
-        'branch' => 'feat/hu-456',
-        'slug' => 'feat-hu-456',
-        'domain' => 'feat-hu-456.review.example.com',
-        'server_id' => 12345,
-        'site_id' => 200,
-        'database_id' => 10,
-        'database_user_id' => 20,
-    ]);
+test('encontra ambiente existente via Forge API', function (): void {
+    $databaseResource = Mockery::mock(DatabaseResource::class);
+    $databaseUserResource = Mockery::mock(DatabaseUserResource::class);
+    $siteResource = Mockery::mock(SiteResource::class);
+
+    $siteResource->shouldReceive('findByDomain')
+        ->once()
+        ->with(12345, 'feat-hu-456.review.example.com')
+        ->andReturn(makeSiteData(200, 'feat-hu-456.review.example.com'));
+
+    $databaseResource->shouldReceive('findByName')
+        ->once()
+        ->with(12345, 'review_feat_hu_456')
+        ->andReturn(new DatabaseData(id: 10, serverId: 12345, name: 'review_feat_hu_456', status: 'installed', createdAt: now()->toDateTimeString()));
+
+    $databaseUserResource->shouldReceive('findByName')
+        ->once()
+        ->with(12345, 'review_feat_hu_456')
+        ->andReturn(new DatabaseUserData(id: 20, serverId: 12345, name: 'review_feat_hu_456', status: 'installed', createdAt: now()->toDateTimeString(), databases: [10]));
+
+    $forgeClient = Mockery::mock(ForgeClient::class);
+    $forgeClient->shouldReceive('databases')->andReturn($databaseResource);
+    $forgeClient->shouldReceive('databaseUsers')->andReturn($databaseUserResource);
+    $forgeClient->shouldReceive('sites')->andReturn($siteResource);
+
+    $builder = makeEnvironmentBuilder($forgeClient);
+    $environment = $builder->find('feat/hu-456');
+
+    expect($environment)->not->toBeNull()
+        ->and($environment->branch)->toBe('feat/hu-456')
+        ->and($environment->siteId)->toBe(200)
+        ->and($environment->databaseId)->toBe(10)
+        ->and($environment->databaseUserId)->toBe(20);
+});
+
+test('retorna null quando site não existe', function (): void {
+    $siteResource = Mockery::mock(SiteResource::class);
+    $siteResource->shouldReceive('findByDomain')
+        ->once()
+        ->with(12345, 'feat-nonexistent.review.example.com')
+        ->andReturnNull();
+
+    $forgeClient = Mockery::mock(ForgeClient::class);
+    $forgeClient->shouldReceive('sites')->andReturn($siteResource);
+
+    $builder = makeEnvironmentBuilder($forgeClient);
+    $environment = $builder->find('feat/nonexistent');
+
+    expect($environment)->toBeNull();
+});
+
+test('verifica se ambiente existe', function (): void {
+    $siteResource = Mockery::mock(SiteResource::class);
+    $siteResource->shouldReceive('findByDomain')
+        ->once()
+        ->with(12345, 'feat-exists.review.example.com')
+        ->andReturn(makeSiteData(100, 'feat-exists.review.example.com'));
+
+    $databaseResource = Mockery::mock(DatabaseResource::class);
+    $databaseResource->shouldReceive('findByName')->andReturnNull();
+
+    $databaseUserResource = Mockery::mock(DatabaseUserResource::class);
+    $databaseUserResource->shouldReceive('findByName')->andReturnNull();
+
+    $forgeClient = Mockery::mock(ForgeClient::class);
+    $forgeClient->shouldReceive('sites')->andReturn($siteResource);
+    $forgeClient->shouldReceive('databases')->andReturn($databaseResource);
+    $forgeClient->shouldReceive('databaseUsers')->andReturn($databaseUserResource);
+
+    $builder = makeEnvironmentBuilder($forgeClient);
+
+    expect($builder->exists('feat/exists'))->toBeTrue();
+});
+
+test('verifica que ambiente não existe', function (): void {
+    $siteResource = Mockery::mock(SiteResource::class);
+    $siteResource->shouldReceive('findByDomain')
+        ->once()
+        ->andReturnNull();
+
+    $forgeClient = Mockery::mock(ForgeClient::class);
+    $forgeClient->shouldReceive('sites')->andReturn($siteResource);
+
+    $builder = makeEnvironmentBuilder($forgeClient);
+
+    expect($builder->exists('feat/not-exists'))->toBeFalse();
+});
+
+test('destrói ambiente removendo recursos na ordem correta', function (): void {
+    $environment = new EnvironmentData(
+        branch: 'feat/hu-456',
+        slug: 'feat-hu-456',
+        domain: 'feat-hu-456.review.example.com',
+        serverId: 12345,
+        siteId: 200,
+        databaseId: 10,
+        databaseUserId: 20,
+    );
 
     $databaseResource = Mockery::mock(DatabaseResource::class);
     $databaseUserResource = Mockery::mock(DatabaseUserResource::class);
@@ -140,28 +233,43 @@ test('destroys environment removing resources in correct order', function (): vo
     $forgeClient->shouldReceive('databaseUsers')->andReturn($databaseUserResource);
     $forgeClient->shouldReceive('sites')->andReturn($siteResource);
 
-    $builder = new EnvironmentBuilder(
-        $forgeClient,
-        new BranchSanitizer(),
-        new DomainBuilder(),
-        new DeploymentScriptBuilder(),
-    );
-
+    $builder = makeEnvironmentBuilder($forgeClient);
     $builder->destroy($environment);
 
-    expect(ReviewEnvironment::query()->find($environment->id))->toBeNull();
+    expect(true)->toBeTrue();
 });
 
-test('deploys existing environment', function (): void {
-    $environment = ReviewEnvironment::query()->create([
-        'branch' => 'feat/hu-789',
-        'slug' => 'feat-hu-789',
-        'domain' => 'feat-hu-789.review.example.com',
-        'server_id' => 12345,
-        'site_id' => 300,
-        'database_id' => 30,
-        'database_user_id' => 40,
-    ]);
+test('destrói ambiente sem database quando não existe', function (): void {
+    $environment = new EnvironmentData(
+        branch: 'feat/no-db',
+        slug: 'feat-no-db',
+        domain: 'feat-no-db.review.example.com',
+        serverId: 12345,
+        siteId: 300,
+    );
+
+    $siteResource = Mockery::mock(SiteResource::class);
+    $siteResource->shouldReceive('delete')->once()->with(12345, 300);
+
+    $forgeClient = Mockery::mock(ForgeClient::class);
+    $forgeClient->shouldReceive('sites')->andReturn($siteResource);
+
+    $builder = makeEnvironmentBuilder($forgeClient);
+    $builder->destroy($environment);
+
+    expect(true)->toBeTrue();
+});
+
+test('faz deploy de ambiente existente', function (): void {
+    $environment = new EnvironmentData(
+        branch: 'feat/hu-789',
+        slug: 'feat-hu-789',
+        domain: 'feat-hu-789.review.example.com',
+        serverId: 12345,
+        siteId: 300,
+        databaseId: 30,
+        databaseUserId: 40,
+    );
 
     $siteResource = Mockery::mock(SiteResource::class);
     $siteResource->shouldReceive('deploy')->once()->with(12345, 300);
@@ -169,12 +277,8 @@ test('deploys existing environment', function (): void {
     $forgeClient = Mockery::mock(ForgeClient::class);
     $forgeClient->shouldReceive('sites')->andReturn($siteResource);
 
-    $builder = new EnvironmentBuilder(
-        $forgeClient,
-        new BranchSanitizer(),
-        new DomainBuilder(),
-        new DeploymentScriptBuilder(),
-    );
-
+    $builder = makeEnvironmentBuilder($forgeClient);
     $builder->deploy($environment);
+
+    expect(true)->toBeTrue();
 });

@@ -4,8 +4,9 @@ declare(strict_types=1);
 
 namespace Ddr\ForgeTestBranches;
 
-use Ddr\ForgeTestBranches\Models\ReviewEnvironment;
+use Ddr\ForgeTestBranches\Data\EnvironmentData;
 use Ddr\ForgeTestBranches\Services\EnvironmentBuilder;
+use RuntimeException;
 
 class ForgeTestBranches
 {
@@ -14,30 +15,40 @@ class ForgeTestBranches
     ) {
     }
 
-    public function create(string $branch): ReviewEnvironment
+    public function create(string $branch): EnvironmentData
     {
         return $this->builder->create($branch);
     }
 
     public function destroy(string $branch): void
     {
-        $environment = ReviewEnvironment::query()->where('branch', $branch)->firstOrFail();
+        $environment = $this->builder->find($branch);
+
+        if (! $environment instanceof EnvironmentData) {
+            throw new RuntimeException("Environment not found for branch: {$branch}");
+        }
+
         $this->builder->destroy($environment);
     }
 
     public function deploy(string $branch): void
     {
-        $environment = ReviewEnvironment::query()->where('branch', $branch)->firstOrFail();
+        $environment = $this->builder->find($branch);
+
+        if (! $environment instanceof EnvironmentData) {
+            throw new RuntimeException("Environment not found for branch: {$branch}");
+        }
+
         $this->builder->deploy($environment);
     }
 
-    public function find(string $branch): ?ReviewEnvironment
+    public function find(string $branch): ?EnvironmentData
     {
-        return ReviewEnvironment::query()->where('branch', $branch)->first();
+        return $this->builder->find($branch);
     }
 
     public function exists(string $branch): bool
     {
-        return ReviewEnvironment::query()->where('branch', $branch)->exists();
+        return $this->builder->exists($branch);
     }
 }
