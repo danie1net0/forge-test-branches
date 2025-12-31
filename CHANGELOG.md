@@ -1,3 +1,10 @@
+# [1.1.0](https://github.com/danie1net0/forge-test-branches/compare/v1.0.0...v1.1.0) (2025-12-31)
+
+
+### Features
+
+* add branch patterns, database seeding and github webhook support ([20ea81c](https://github.com/danie1net0/forge-test-branches/commit/20ea81cda1b448a37a66f7a2c1e6e7575ac7e144))
+
 # 1.0.0 (2025-12-29)
 
 
