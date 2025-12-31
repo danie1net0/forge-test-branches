@@ -118,13 +118,13 @@ class EnvironmentBuilder
     /** @return array{DatabaseUserData, string} */
     protected function createDatabaseUser(int $serverId, string $slug, DatabaseData $database): array
     {
-        $name = $this->buildDatabaseName($slug);
-        $password = Str::password(32);
+        $username = $this->buildDatabaseName($slug);
+        $password = Str::password(32, letters: true, numbers: true, symbols: false, spaces: false);
 
         $user = $this->forge->databaseUsers()->create(
             $serverId,
             new CreateDatabaseUserData(
-                name: $name,
+                user: $username,
                 password: $password,
                 databases: [$database->id]
             )

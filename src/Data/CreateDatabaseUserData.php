@@ -13,7 +13,7 @@ use Spatie\LaravelData\Mappers\SnakeCaseMapper;
 class CreateDatabaseUserData extends Data
 {
     public function __construct(
-        public string $name,
+        public string $user,
         public string $password,
         /** @var array<int> */
         public array $databases = [],
