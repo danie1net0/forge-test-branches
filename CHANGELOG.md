@@ -1,3 +1,10 @@
+## [1.1.1](https://github.com/danie1net0/forge-test-branches/compare/v1.1.0...v1.1.1) (2025-12-31)
+
+
+### Bug Fixes
+
+* **forge-api:** corrigir criação de usuário de banco de dados ([51ae735](https://github.com/danie1net0/forge-test-branches/commit/51ae735414a5c6e2e8e149a3c79f992b16cd6339))
+
 # [1.1.0](https://github.com/danie1net0/forge-test-branches/compare/v1.0.0...v1.1.0) (2025-12-31)
 
 
