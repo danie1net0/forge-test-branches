@@ -4,22 +4,19 @@ declare(strict_types=1);
 
 use Ddr\ForgeTestBranches\Data\CreateDatabaseData;
 
-test('creates instance with name only', function (): void {
+test('creates instance with name', function (): void {
     $data = new CreateDatabaseData(name: 'review_db');
 
-    expect($data->name)->toBe('review_db')
-        ->and($data->user)->toBeNull()
-        ->and($data->password)->toBeNull();
+    expect($data->name)->toBe('review_db');
 });
 
-test('creates instance with all parameters', function (): void {
-    $data = new CreateDatabaseData(
-        name: 'review_db',
-        user: 'review_user',
-        password: 'secret123',
-    );
+test('serializes to array with correct field names for Forge API', function (): void {
+    $data = new CreateDatabaseData(name: 'review_db');
 
-    expect($data->name)->toBe('review_db')
-        ->and($data->user)->toBe('review_user')
-        ->and($data->password)->toBe('secret123');
+    $array = $data->toArray();
+
+    expect($array)->toHaveKey('name')
+        ->and($array['name'])->toBe('review_db')
+        ->and($array)->not->toHaveKey('user')
+        ->and($array)->not->toHaveKey('password');
 });

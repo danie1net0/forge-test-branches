@@ -14,8 +14,6 @@ class CreateDatabaseData extends Data
 {
     public function __construct(
         public string $name,
-        public ?string $user = null,
-        public ?string $password = null,
     ) {
     }
 }
