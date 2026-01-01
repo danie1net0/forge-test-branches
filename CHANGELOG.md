@@ -1,3 +1,10 @@
+## [1.1.2](https://github.com/danie1net0/forge-test-branches/compare/v1.1.1...v1.1.2) (2026-01-01)
+
+
+### Bug Fixes
+
+* **forge-api:** remove user/password fields from CreateDatabaseData ([4b33d97](https://github.com/danie1net0/forge-test-branches/commit/4b33d97eb276164c64f96cd7f5238dafb71e7af1))
+
 ## [1.1.1](https://github.com/danie1net0/forge-test-branches/compare/v1.1.0...v1.1.1) (2025-12-31)
 
 
