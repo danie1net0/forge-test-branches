@@ -282,3 +282,52 @@ test('faz deploy de ambiente existente', function (): void {
 
     expect(true)->toBeTrue();
 });
+
+test('envia dados corretos para criação de usuário de banco', function (): void {
+    $capturedData = null;
+
+    $databaseResource = Mockery::mock(DatabaseResource::class);
+    $databaseUserResource = Mockery::mock(DatabaseUserResource::class);
+    $siteResource = Mockery::mock(SiteResource::class);
+
+    $databaseResource->shouldReceive('create')
+        ->once()
+        ->andReturn(new DatabaseData(id: 1, serverId: 12345, name: 'review_feat_test', status: 'installed', createdAt: now()->toDateTimeString()));
+
+    $databaseUserResource->shouldReceive('create')
+        ->once()
+        ->withArgs(function (int $serverId, $data) use (&$capturedData): bool {
+            $capturedData = $data->toArray();
+
+            return true;
+        })
+        ->andReturn(new DatabaseUserData(id: 2, serverId: 12345, name: 'review_feat_test', status: 'installed', createdAt: now()->toDateTimeString(), databases: [1]));
+
+    $siteResource->shouldReceive('create')
+        ->once()
+        ->andReturn(makeSiteData(100, 'feat-test.review.example.com'));
+
+    $siteResource->shouldReceive('installGitRepository')->once()->andReturn(makeSiteData(100, 'feat-test.review.example.com'));
+    $siteResource->shouldReceive('getEnvironment')->once()->andReturn("APP_NAME=Laravel\nAPP_ENV=local");
+    $siteResource->shouldReceive('updateEnvironment')->once();
+    $siteResource->shouldReceive('updateDeploymentScript')->once();
+    $siteResource->shouldReceive('enableQuickDeploy')->once();
+    $siteResource->shouldReceive('deploy')->once();
+
+    $forgeClient = Mockery::mock(ForgeClient::class);
+    $forgeClient->shouldReceive('databases')->andReturn($databaseResource);
+    $forgeClient->shouldReceive('databaseUsers')->andReturn($databaseUserResource);
+    $forgeClient->shouldReceive('sites')->andReturn($siteResource);
+
+    $builder = makeEnvironmentBuilder($forgeClient);
+    $builder->create('feat/test');
+
+    expect($capturedData)->toHaveKey('user')
+        ->and($capturedData)->not->toHaveKey('name')
+        ->and($capturedData['user'])->toBe('review_feat_test')
+        ->and($capturedData)->toHaveKey('password')
+        ->and($capturedData['password'])->toMatch('/^[a-zA-Z0-9]+$/')
+        ->and(mb_strlen((string) $capturedData['password']))->toBe(32)
+        ->and($capturedData)->toHaveKey('databases')
+        ->and($capturedData['databases'])->toBe([1]);
+});

@@ -26,3 +26,20 @@ test('creates instance with databases', function (): void {
         ->and($data->password)->toBe('secret123')
         ->and($data->databases)->toBe([789, 790]);
 });
+
+test('serializes to array with correct field names for Forge API', function (): void {
+    $data = new CreateDatabaseUserData(
+        user: 'review_user',
+        password: 'secret123',
+        databases: [789],
+    );
+
+    $array = $data->toArray();
+
+    expect($array)->toHaveKey('user')
+        ->and($array['user'])->toBe('review_user')
+        ->and($array)->toHaveKey('password')
+        ->and($array['password'])->toBe('secret123')
+        ->and($array)->toHaveKey('databases')
+        ->and($array)->not->toHaveKey('name');
+});

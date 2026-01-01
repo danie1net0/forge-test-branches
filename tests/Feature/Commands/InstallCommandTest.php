@@ -63,11 +63,9 @@ test('adds variables to env successfully', function (): void {
             ->toContain('FORGE_GIT_REPOSITORY=user/repo')
             ->toContain('FORGE_WEBHOOK_SECRET=secret123');
     } finally {
-        if ($envBackup !== null) {
-            file_put_contents($envPath, $envBackup);
-        } else {
-            unlink($envPath);
-        }
+        $envBackup !== null
+            ? file_put_contents($envPath, $envBackup)
+            : unlink($envPath);
     }
 });
 
@@ -93,11 +91,9 @@ test('does not add variables when they already exist in env', function (): void 
         expect($envContent)->toContain('FORGE_API_TOKEN=existing')
             ->toContain('FORGE_SERVER_ID=999');
     } finally {
-        if ($envBackup !== null) {
-            file_put_contents($envPath, $envBackup);
-        } else {
-            unlink($envPath);
-        }
+        $envBackup !== null
+            ? file_put_contents($envPath, $envBackup)
+            : unlink($envPath);
     }
 });
 
@@ -121,11 +117,9 @@ test('generates webhook secret automatically when empty', function (): void {
         $envContent = file_get_contents($envPath);
         expect($envContent)->toMatch('/FORGE_WEBHOOK_SECRET=[a-f0-9]{32}/');
     } finally {
-        if ($envBackup !== null) {
-            file_put_contents($envPath, $envBackup);
-        } else {
-            unlink($envPath);
-        }
+        $envBackup !== null
+            ? file_put_contents($envPath, $envBackup)
+            : unlink($envPath);
     }
 });
 
@@ -151,11 +145,11 @@ test('creates gitlab-ci file when it does not exist', function (): void {
             ->toContain('review.test.com')
             ->toContain('forge-test-branches');
     } finally {
-        if ($ciBackup !== null) {
-            file_put_contents($ciPath, $ciBackup);
-        } elseif (file_exists($ciPath)) {
-            unlink($ciPath);
-        }
+        match (true) {
+            $ciBackup !== null => file_put_contents($ciPath, $ciBackup),
+            file_exists($ciPath) => unlink($ciPath),
+            default => null,
+        };
     }
 });
 
@@ -177,11 +171,9 @@ test('adds configuration to existing gitlab-ci', function (): void {
             ->toContain('test_job')
             ->toContain('review.test.com');
     } finally {
-        if ($ciBackup !== null) {
-            file_put_contents($ciPath, $ciBackup);
-        } else {
-            unlink($ciPath);
-        }
+        $ciBackup !== null
+            ? file_put_contents($ciPath, $ciBackup)
+            : unlink($ciPath);
     }
 });
 
@@ -200,10 +192,8 @@ test('warns when gitlab configuration already exists', function (): void {
         $ciContent = file_get_contents($ciPath);
         expect($ciContent)->toBe("stages:\n  - review\n\nforge-test-branches:\n  stage: review\n");
     } finally {
-        if ($ciBackup !== null) {
-            file_put_contents($ciPath, $ciBackup);
-        } else {
-            unlink($ciPath);
-        }
+        $ciBackup !== null
+            ? file_put_contents($ciPath, $ciBackup)
+            : unlink($ciPath);
     }
 });

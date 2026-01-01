@@ -5,6 +5,7 @@ namespace Ddr\ForgeTestBranches\Tests;
 use Override;
 use Orchestra\Testbench\TestCase as Orchestra;
 use Ddr\ForgeTestBranches\ForgeTestBranchesServiceProvider;
+use Spatie\LaravelData\LaravelDataServiceProvider;
 
 class TestCase extends Orchestra
 {
@@ -17,6 +18,7 @@ class TestCase extends Orchestra
     protected function getPackageProviders($app): array
     {
         return [
+            LaravelDataServiceProvider::class,
             ForgeTestBranchesServiceProvider::class,
         ];
     }
