@@ -124,7 +124,7 @@ class EnvironmentBuilder
         $user = $this->forge->databaseUsers()->create(
             $serverId,
             new CreateDatabaseUserData(
-                user: $username,
+                name: $username,
                 password: $password,
                 databases: [$database->id]
             )

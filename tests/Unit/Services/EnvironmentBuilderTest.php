@@ -322,9 +322,8 @@ test('envia dados corretos para criação de usuário de banco', function (): vo
     $builder = makeEnvironmentBuilder($forgeClient);
     $builder->create('feat/test');
 
-    expect($capturedData)->toHaveKey('user')
-        ->and($capturedData)->not->toHaveKey('name')
-        ->and($capturedData['user'])->toBe('review_feat_test')
+    expect($capturedData)->toHaveKey('name')
+        ->and($capturedData['name'])->toBe('review_feat_test')
         ->and($capturedData)->toHaveKey('password')
         ->and($capturedData['password'])->toMatch('/^[a-zA-Z0-9]+$/')
         ->and(mb_strlen((string) $capturedData['password']))->toBe(32)
