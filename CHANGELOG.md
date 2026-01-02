@@ -1,3 +1,10 @@
+## [1.1.10](https://github.com/danie1net0/forge-test-branches/compare/v1.1.9...v1.1.10) (2026-01-02)
+
+
+### Bug Fixes
+
+* **deploy:** usar git fetch + reset ao invés de pull para evitar conflitos ([9c7b144](https://github.com/danie1net0/forge-test-branches/commit/9c7b144fa599e943e590be84d60ce7d43ed73229))
+
 ## [1.1.9](https://github.com/danie1net0/forge-test-branches/compare/v1.1.8...v1.1.9) (2026-01-02)
 
 
