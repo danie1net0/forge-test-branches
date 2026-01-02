@@ -1,3 +1,10 @@
+## [1.1.8](https://github.com/danie1net0/forge-test-branches/compare/v1.1.7...v1.1.8) (2026-01-02)
+
+
+### Bug Fixes
+
+* **database:** truncar nome do banco para respeitar limite de 32 caracteres ([eb7e69b](https://github.com/danie1net0/forge-test-branches/commit/eb7e69b32cf4d1d7f60c4ca09942daf88f986fb8))
+
 ## [1.1.7](https://github.com/danie1net0/forge-test-branches/compare/v1.1.6...v1.1.7) (2026-01-02)
 
 
