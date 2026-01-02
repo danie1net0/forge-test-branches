@@ -330,3 +330,55 @@ test('envia dados corretos para criação de usuário de banco', function (): vo
         ->and($capturedData)->toHaveKey('databases')
         ->and($capturedData['databases'])->toBe([1]);
 });
+
+test('trunca nome do banco para respeitar limite de 32 caracteres', function (): void {
+    $capturedDbData = null;
+    $capturedUserData = null;
+
+    $databaseResource = Mockery::mock(DatabaseResource::class);
+    $databaseUserResource = Mockery::mock(DatabaseUserResource::class);
+    $siteResource = Mockery::mock(SiteResource::class);
+
+    $databaseResource->shouldReceive('create')
+        ->once()
+        ->withArgs(function (int $serverId, $data) use (&$capturedDbData): bool {
+            $capturedDbData = $data->toArray();
+
+            return true;
+        })
+        ->andReturn(new DatabaseData(id: 1, serverId: 12345, name: 'review_sprint_16_feature_t_abc123', status: 'installed', createdAt: now()->toDateTimeString()));
+
+    $databaseUserResource->shouldReceive('create')
+        ->once()
+        ->withArgs(function (int $serverId, $data) use (&$capturedUserData): bool {
+            $capturedUserData = $data->toArray();
+
+            return true;
+        })
+        ->andReturn(new DatabaseUserData(id: 2, serverId: 12345, name: 'review_sprint_16_feature_t_abc123', status: 'installed', createdAt: now()->toDateTimeString(), databases: [1]));
+
+    $siteResource->shouldReceive('create')
+        ->once()
+        ->andReturn(makeSiteData(100, 'sprint-16-feature-test-branches.review.example.com'));
+
+    $siteResource->shouldReceive('installGitRepository')->once()->andReturn(makeSiteData(100, 'sprint-16-feature-test-branches.review.example.com'));
+    $siteResource->shouldReceive('getEnvironment')->once()->andReturn("APP_NAME=Laravel\nAPP_ENV=local");
+    $siteResource->shouldReceive('updateEnvironment')->once();
+    $siteResource->shouldReceive('updateDeploymentScript')->once();
+    $siteResource->shouldReceive('enableQuickDeploy')->once();
+    $siteResource->shouldReceive('deploy')->once();
+
+    $forgeClient = Mockery::mock(ForgeClient::class);
+    $forgeClient->shouldReceive('databases')->andReturn($databaseResource);
+    $forgeClient->shouldReceive('databaseUsers')->andReturn($databaseUserResource);
+    $forgeClient->shouldReceive('sites')->andReturn($siteResource);
+
+    $builder = makeEnvironmentBuilder($forgeClient);
+    $builder->create('sprint-16/feature/test-branches');
+
+    expect(mb_strlen((string) $capturedDbData['name']))->toBeLessThanOrEqual(32)
+        ->and($capturedDbData['name'])->toStartWith('review_')
+        ->and($capturedDbData['name'])->toMatch('/^review_sprint_16_feature_[a-z0-9_]+$/')
+        ->and(mb_strlen((string) $capturedUserData['name']))->toBeLessThanOrEqual(32)
+        ->and($capturedUserData['name'])->toBe($capturedDbData['name']);
+});

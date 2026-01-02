@@ -100,9 +100,20 @@ class EnvironmentBuilder
 
     protected function buildDatabaseName(string $slug): string
     {
-        $prefix = config('forge-test-branches.database.prefix');
+        $prefix = (string) config('forge-test-branches.database.prefix');
+        $maxLength = 32;
+        $name = $prefix . str_replace('-', '_', $slug);
 
-        return $prefix . str_replace('-', '_', $slug);
+        if (mb_strlen($name) <= $maxLength) {
+            return $name;
+        }
+
+        $hash = mb_substr(md5($slug), 0, 6);
+        $availableLength = $maxLength - mb_strlen($prefix) - mb_strlen($hash) - 1;
+        $truncatedSlug = mb_substr(str_replace('-', '_', $slug), 0, $availableLength);
+        $truncatedSlug = mb_rtrim($truncatedSlug, '_');
+
+        return $prefix . $truncatedSlug . '_' . $hash;
     }
 
     protected function createDatabase(int $serverId, string $slug): DatabaseData
