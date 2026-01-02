@@ -1,3 +1,10 @@
+## [1.1.7](https://github.com/danie1net0/forge-test-branches/compare/v1.1.6...v1.1.7) (2026-01-02)
+
+
+### Bug Fixes
+
+* **forge-api:** rename user field to name in CreateDatabaseUserData ([7fe209e](https://github.com/danie1net0/forge-test-branches/commit/7fe209e1639bbad322fb70e0dd2ae35da90dcfbd))
+
 ## [1.1.6](https://github.com/danie1net0/forge-test-branches/compare/v1.1.5...v1.1.6) (2026-01-02)
 
 
