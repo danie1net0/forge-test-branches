@@ -1,3 +1,10 @@
+## [1.1.4](https://github.com/danie1net0/forge-test-branches/compare/v1.1.3...v1.1.4) (2026-01-02)
+
+
+### Bug Fixes
+
+* **saloon:** remove duplicate Content-Type header from connector ([ee101b2](https://github.com/danie1net0/forge-test-branches/commit/ee101b2057968e4042d9e07914b9d16c77fcc213))
+
 ## [1.1.3](https://github.com/danie1net0/forge-test-branches/compare/v1.1.2...v1.1.3) (2026-01-02)
 
 
