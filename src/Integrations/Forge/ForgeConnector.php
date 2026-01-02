@@ -27,6 +27,7 @@ class ForgeConnector extends Connector
     {
         return [
             'Accept' => 'application/json',
+            'Content-Type' => 'application/json',
         ];
     }
 
