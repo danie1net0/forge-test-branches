@@ -25,4 +25,10 @@ class CreateSiteData extends Data
         public ?int $nginxTemplate = null,
     ) {
     }
+
+    /** @return array<string, mixed> */
+    public function toArray(): array
+    {
+        return array_filter(parent::toArray(), fn ($value): bool => $value !== null);
+    }
 }
