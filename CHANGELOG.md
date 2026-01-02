@@ -1,3 +1,10 @@
+## [1.1.5](https://github.com/danie1net0/forge-test-branches/compare/v1.1.4...v1.1.5) (2026-01-02)
+
+
+### Bug Fixes
+
+* **saloon:** restore Content-Type header in connector ([4a02c62](https://github.com/danie1net0/forge-test-branches/commit/4a02c6269b214814ffc31dbef972292ad7ef859d))
+
 ## [1.1.4](https://github.com/danie1net0/forge-test-branches/compare/v1.1.3...v1.1.4) (2026-01-02)
 
 
