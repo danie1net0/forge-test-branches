@@ -123,11 +123,30 @@ return [
     |
     | Deploy configuration for review environments.
     |
-    | - script: Custom deploy script. If null, uses Forge default
-    |           with additional commands for migrations and cache.
+    | - script: Custom deploy script. If null, uses the default script below.
+    |           Supports {branch} placeholder which is replaced with the branch name.
     | - quick_deploy: Enables automatic deploy via repository push.
     | - seed: Run database seeders after migrations (default: false)
     | - seed_class: Specific seeder class to run (null = DatabaseSeeder)
+    |
+    | Default script (when script is null):
+    |
+    |   cd $FORGE_SITE_PATH
+    |   git fetch origin {branch}
+    |   git reset --hard origin/{branch}
+    |   git clean -fd
+    |
+    |   $FORGE_COMPOSER install --no-dev --no-interaction --prefer-dist --optimize-autoloader
+    |
+    |   ( flock -w 10 9 || exit 1
+    |       echo 'Restarting FPM...'; sudo -S service $FORGE_PHP_FPM reload ) 9>/tmp/fpmlock
+    |
+    |   if [ -f artisan ]; then
+    |       $FORGE_PHP artisan migrate --force
+    |       $FORGE_PHP artisan config:cache
+    |       $FORGE_PHP artisan route:cache
+    |       $FORGE_PHP artisan view:cache
+    |   fi
     |
     */
 
