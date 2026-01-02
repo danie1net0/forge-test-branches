@@ -1,3 +1,10 @@
+## [1.1.9](https://github.com/danie1net0/forge-test-branches/compare/v1.1.8...v1.1.9) (2026-01-02)
+
+
+### Bug Fixes
+
+* **api:** excluir campos nulos dos DTOs para compatibilidade com Forge API ([893d432](https://github.com/danie1net0/forge-test-branches/commit/893d43284e7e86d5f52f5e742bcec66cd64f3d8a))
+
 ## [1.1.8](https://github.com/danie1net0/forge-test-branches/compare/v1.1.7...v1.1.8) (2026-01-02)
 
 
