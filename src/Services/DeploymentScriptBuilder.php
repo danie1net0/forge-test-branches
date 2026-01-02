@@ -23,7 +23,9 @@ class DeploymentScriptBuilder
 
         return <<<BASH
         cd \$FORGE_SITE_PATH
-        git pull origin {$branch}
+        git fetch origin {$branch}
+        git reset --hard origin/{$branch}
+        git clean -fd
 
         \$FORGE_COMPOSER install --no-dev --no-interaction --prefer-dist --optimize-autoloader
 
