@@ -6,7 +6,7 @@ namespace Ddr\ForgeTestBranches;
 
 use Ddr\ForgeTestBranches\Integrations\Forge\ForgeClient;
 use Spatie\LaravelPackageTools\{Package, PackageServiceProvider};
-use Ddr\ForgeTestBranches\Commands\{CreateEnvironmentCommand, DeployEnvironmentCommand, DestroyEnvironmentCommand, InstallCommand};
+use Ddr\ForgeTestBranches\Commands\{CreateEnvironmentCommand, DebugRequestCommand, DeployEnvironmentCommand, DestroyEnvironmentCommand, InstallCommand};
 use Ddr\ForgeTestBranches\Services\{BranchPatternMatcher, BranchSanitizer, DeploymentScriptBuilder, DomainBuilder, EnvironmentBuilder};
 
 class ForgeTestBranchesServiceProvider extends PackageServiceProvider
@@ -21,6 +21,7 @@ class ForgeTestBranchesServiceProvider extends PackageServiceProvider
                 CreateEnvironmentCommand::class,
                 DestroyEnvironmentCommand::class,
                 DeployEnvironmentCommand::class,
+                DebugRequestCommand::class,
             ]);
     }
 
