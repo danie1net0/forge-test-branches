@@ -4,28 +4,22 @@ declare(strict_types=1);
 
 namespace Ddr\ForgeTestBranches\Integrations\Forge\Requests\Databases;
 
+use Ddr\ForgeTestBranches\Data\{CreateDatabaseUserData, DatabaseUserData};
 use Saloon\Contracts\Body\HasBody;
 use Saloon\Enums\Method;
 use Saloon\Http\{Request, Response};
-use Ddr\ForgeTestBranches\Data\{CreateDatabaseUserData, DatabaseUserData};
-use Saloon\Repositories\Body\JsonBodyRepository;
+use Saloon\Traits\Body\HasJsonBody;
 
 class CreateDatabaseUserRequest extends Request implements HasBody
 {
-    protected Method $method = Method::POST;
+    use HasJsonBody;
 
-    protected JsonBodyRepository $body;
+    protected Method $method = Method::POST;
 
     public function __construct(
         protected int $serverId,
         protected CreateDatabaseUserData $data,
     ) {
-        $this->body = new JsonBodyRepository($this->data->toArray());
-    }
-
-    public function body(): JsonBodyRepository
-    {
-        return $this->body;
     }
 
     public function resolveEndpoint(): string
@@ -40,5 +34,13 @@ class CreateDatabaseUserRequest extends Request implements HasBody
         return DatabaseUserData::from(array_merge($user, [
             'server_id' => $this->serverId,
         ]));
+    }
+
+    /**
+     * @return array<string, mixed>
+     */
+    protected function defaultBody(): array
+    {
+        return $this->data->toArray();
     }
 }

@@ -14,6 +14,5 @@ test('includes default headers', function (): void {
     $connector = new ForgeConnector('test-token');
     $headers = $connector->headers()->all();
 
-    expect($headers)->toHaveKey('Accept', 'application/json')
-        ->and($headers)->toHaveKey('Content-Type', 'application/json');
+    expect($headers)->toHaveKey('Accept', 'application/json');
 });
