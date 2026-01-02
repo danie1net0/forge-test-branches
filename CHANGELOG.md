@@ -1,3 +1,10 @@
+## [1.1.6](https://github.com/danie1net0/forge-test-branches/compare/v1.1.5...v1.1.6) (2026-01-02)
+
+
+### Bug Fixes
+
+* **saloon:** use HasJsonBody trait for proper Content-Type header ([a03fe83](https://github.com/danie1net0/forge-test-branches/commit/a03fe8321740f4b673bee3b46d004ddddee13021))
+
 ## [1.1.5](https://github.com/danie1net0/forge-test-branches/compare/v1.1.4...v1.1.5) (2026-01-02)
 
 
