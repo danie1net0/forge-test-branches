@@ -1,3 +1,10 @@
+## [1.1.3](https://github.com/danie1net0/forge-test-branches/compare/v1.1.2...v1.1.3) (2026-01-02)
+
+
+### Bug Fixes
+
+* **saloon:** initialize body in constructor for all requests ([2061387](https://github.com/danie1net0/forge-test-branches/commit/206138731be048801fc91df093fc1004391b2e71))
+
 ## [1.1.2](https://github.com/danie1net0/forge-test-branches/compare/v1.1.1...v1.1.2) (2026-01-01)
 
 
