@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-use Ddr\ForgeTestBranches\Data\{DatabaseData, DatabaseUserData, EnvironmentData, SiteData};
+use Ddr\ForgeTestBranches\Data\{CreateDatabaseData, CreateDatabaseUserData, DatabaseData, DatabaseUserData, EnvironmentData, SiteData};
 use Ddr\ForgeTestBranches\Integrations\Forge\ForgeClient;
 use Ddr\ForgeTestBranches\Integrations\Forge\Resources\{DatabaseResource, DatabaseUserResource, SiteResource};
 use Ddr\ForgeTestBranches\Services\{BranchSanitizer, DeploymentScriptBuilder, DomainBuilder, EnvironmentBuilder};
@@ -300,7 +300,7 @@ test('envia dados corretos para criação de usuário de banco', function (): vo
 
     $databaseUserResource->shouldReceive('create')
         ->once()
-        ->withArgs(function (int $serverId, $data) use (&$capturedData): bool {
+        ->withArgs(function (int $serverId, CreateDatabaseUserData $data) use (&$capturedData): bool {
             $capturedData = $data->toArray();
 
             return true;
@@ -347,7 +347,7 @@ test('trunca nome do banco para respeitar limite de 32 caracteres', function ():
 
     $databaseResource->shouldReceive('create')
         ->once()
-        ->withArgs(function (int $serverId, $data) use (&$capturedDbData): bool {
+        ->withArgs(function (int $serverId, CreateDatabaseData $data) use (&$capturedDbData): bool {
             $capturedDbData = $data->toArray();
 
             return true;
@@ -356,7 +356,7 @@ test('trunca nome do banco para respeitar limite de 32 caracteres', function ():
 
     $databaseUserResource->shouldReceive('create')
         ->once()
-        ->withArgs(function (int $serverId, $data) use (&$capturedUserData): bool {
+        ->withArgs(function (int $serverId, CreateDatabaseUserData $data) use (&$capturedUserData): bool {
             $capturedUserData = $data->toArray();
 
             return true;
