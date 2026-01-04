@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 use Ddr\ForgeTestBranches\Services\BranchSanitizer;
 
 test('sanitizes branch with special characters', function (): void {

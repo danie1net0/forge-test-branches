@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 namespace Ddr\ForgeTestBranches\Tests;
 
 use Override;

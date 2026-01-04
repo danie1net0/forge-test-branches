@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 use Ddr\ForgeTestBranches\Services\DomainBuilder;
 
 test('builds domain with configured pattern', function (): void {
