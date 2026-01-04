@@ -28,6 +28,7 @@ class EnvironmentBuilder
         [$databaseUser, $databasePassword] = $this->createDatabaseUser($serverId, $slug, $database);
         $site = $this->createSite($serverId, $domain);
         $this->installGitRepository($serverId, $site->id, $branch);
+        $this->forge->sites()->waitForRepositoryInstallation($serverId, $site->id);
         $this->updateEnvironment($serverId, $site->id, $database->name, $databaseUser->name, $databasePassword, $slug);
         $this->updateDeploymentScript($serverId, $site->id, $branch);
 

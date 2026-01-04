@@ -4,8 +4,10 @@ declare(strict_types=1);
 
 namespace Ddr\ForgeTestBranches\Integrations\Forge\Resources;
 
+use Illuminate\Support\Sleep;
 use Ddr\ForgeTestBranches\Data\{CreateSiteData, InstallGitRepositoryData, SiteData};
-use Ddr\ForgeTestBranches\Integrations\Forge\Requests\Sites\{CreateSiteRequest, DeleteSiteRequest, DeploySiteRequest, EnableQuickDeployRequest, GetEnvironmentRequest, InstallGitRepositoryRequest, ListSitesRequest, UpdateDeploymentScriptRequest, UpdateEnvironmentRequest};
+use Ddr\ForgeTestBranches\Integrations\Forge\Requests\Sites\{CreateSiteRequest, DeleteSiteRequest, DeploySiteRequest, EnableQuickDeployRequest, GetEnvironmentRequest, GetSiteRequest, InstallGitRepositoryRequest, ListSitesRequest, UpdateDeploymentScriptRequest, UpdateEnvironmentRequest};
+use RuntimeException;
 use Ddr\ForgeTestBranches\Integrations\Forge\ForgeConnector;
 
 class SiteResource
@@ -24,6 +26,14 @@ class SiteResource
         return $request->createDtoFromResponse($response);
     }
 
+    public function get(int $serverId, int $siteId): SiteData
+    {
+        $request = new GetSiteRequest($serverId, $siteId);
+        $response = $this->connector->send($request);
+
+        return $request->createDtoFromResponse($response);
+    }
+
     public function findByDomain(int $serverId, string $domain): ?SiteData
     {
         $sites = $this->list($serverId);
@@ -35,6 +45,21 @@ class SiteResource
         }
 
         return null;
+    }
+
+    public function waitForRepositoryInstallation(int $serverId, int $siteId, int $maxAttempts = 30, int $sleepSeconds = 5): SiteData
+    {
+        for ($i = 0; $i < $maxAttempts; $i++) {
+            $site = $this->get($serverId, $siteId);
+
+            if ($site->repositoryStatus === 'installed') {
+                return $site;
+            }
+
+            Sleep::sleep($sleepSeconds);
+        }
+
+        throw new RuntimeException('Timeout waiting for repository installation');
     }
 
     public function create(int $serverId, CreateSiteData $data): SiteData

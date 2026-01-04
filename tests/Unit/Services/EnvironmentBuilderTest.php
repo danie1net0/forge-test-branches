@@ -94,6 +94,10 @@ test('cria ambiente completo com sucesso', function (): void {
         ->once()
         ->andReturn(makeSiteData(100, 'feat-hu-123.review.example.com'));
 
+    $siteResource->shouldReceive('waitForRepositoryInstallation')
+        ->once()
+        ->andReturn(makeSiteData(100, 'feat-hu-123.review.example.com'));
+
     $siteResource->shouldReceive('getEnvironment')
         ->once()
         ->andReturn("APP_NAME=Laravel\nAPP_ENV=local");
@@ -308,6 +312,7 @@ test('envia dados corretos para criação de usuário de banco', function (): vo
         ->andReturn(makeSiteData(100, 'feat-test.review.example.com'));
 
     $siteResource->shouldReceive('installGitRepository')->once()->andReturn(makeSiteData(100, 'feat-test.review.example.com'));
+    $siteResource->shouldReceive('waitForRepositoryInstallation')->once()->andReturn(makeSiteData(100, 'feat-test.review.example.com'));
     $siteResource->shouldReceive('getEnvironment')->once()->andReturn("APP_NAME=Laravel\nAPP_ENV=local");
     $siteResource->shouldReceive('updateEnvironment')->once();
     $siteResource->shouldReceive('updateDeploymentScript')->once();
@@ -362,6 +367,7 @@ test('trunca nome do banco para respeitar limite de 32 caracteres', function ():
         ->andReturn(makeSiteData(100, 'sprint-16-feature-test-branches.review.example.com'));
 
     $siteResource->shouldReceive('installGitRepository')->once()->andReturn(makeSiteData(100, 'sprint-16-feature-test-branches.review.example.com'));
+    $siteResource->shouldReceive('waitForRepositoryInstallation')->once()->andReturn(makeSiteData(100, 'sprint-16-feature-test-branches.review.example.com'));
     $siteResource->shouldReceive('getEnvironment')->once()->andReturn("APP_NAME=Laravel\nAPP_ENV=local");
     $siteResource->shouldReceive('updateEnvironment')->once();
     $siteResource->shouldReceive('updateDeploymentScript')->once();
