@@ -52,9 +52,11 @@ class DebugRequestCommand extends Command
         foreach ($psrRequest->getHeaders() as $name => $values) {
             if ($name === 'Authorization') {
                 $this->info("  {$name}: Bearer " . mb_substr($values[0], 7, 20) . '...');
-            } else {
-                $this->info("  {$name}: " . implode(', ', $values));
+
+                continue;
             }
+
+            $this->info("  {$name}: " . implode(', ', $values));
         }
 
         $psrRequest->getBody()->rewind();
