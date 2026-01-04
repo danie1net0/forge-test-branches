@@ -10,10 +10,11 @@ test('creates instance with required parameters', function (): void {
         projectType: 'php',
     );
 
-    expect($data->domain)->toBe('test.example.com')
-        ->and($data->projectType)->toBe('php')
-        ->and($data->aliases)->toBeNull()
-        ->and($data->directory)->toBeNull();
+    expect($data)
+        ->domain->toBe('test.example.com')
+        ->projectType->toBe('php')
+        ->aliases->toBeNull()
+        ->directory->toBeNull();
 });
 
 test('creates instance with all parameters', function (): void {
@@ -29,13 +30,14 @@ test('creates instance with all parameters', function (): void {
         nginxTemplate: 1,
     );
 
-    expect($data->domain)->toBe('test.example.com')
-        ->and($data->projectType)->toBe('php')
-        ->and($data->aliases)->toBe(['alias.example.com'])
-        ->and($data->directory)->toBe('/public')
-        ->and($data->isolated)->toBeTrue()
-        ->and($data->username)->toBe('testuser')
-        ->and($data->database)->toBe('testdb')
-        ->and($data->phpVersion)->toBe('php83')
-        ->and($data->nginxTemplate)->toBe(1);
+    expect($data)
+        ->domain->toBe('test.example.com')
+        ->projectType->toBe('php')
+        ->aliases->toBe(['alias.example.com'])
+        ->directory->toBe('/public')
+        ->isolated->toBeTrue()
+        ->username->toBe('testuser')
+        ->database->toBe('testdb')
+        ->phpVersion->toBe('php83')
+        ->nginxTemplate->toBe(1);
 });

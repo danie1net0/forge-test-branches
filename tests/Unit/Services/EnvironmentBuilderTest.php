@@ -116,13 +116,13 @@ test('cria ambiente completo com sucesso', function (): void {
     $environment = $builder->create('feat/hu-123');
 
     expect($environment)->toBeInstanceOf(EnvironmentData::class)
-        ->and($environment->branch)->toBe('feat/hu-123')
-        ->and($environment->slug)->toBe('feat-hu-123')
-        ->and($environment->domain)->toBe('feat-hu-123.review.example.com')
-        ->and($environment->serverId)->toBe(12345)
-        ->and($environment->siteId)->toBe(100)
-        ->and($environment->databaseId)->toBe(1)
-        ->and($environment->databaseUserId)->toBe(2);
+        ->branch->toBe('feat/hu-123')
+        ->slug->toBe('feat-hu-123')
+        ->domain->toBe('feat-hu-123.review.example.com')
+        ->serverId->toBe(12345)
+        ->siteId->toBe(100)
+        ->databaseId->toBe(1)
+        ->databaseUserId->toBe(2);
 });
 
 test('encontra ambiente existente via Forge API', function (): void {
@@ -154,10 +154,10 @@ test('encontra ambiente existente via Forge API', function (): void {
     $environment = $builder->find('feat/hu-456');
 
     expect($environment)->not->toBeNull()
-        ->and($environment->branch)->toBe('feat/hu-456')
-        ->and($environment->siteId)->toBe(200)
-        ->and($environment->databaseId)->toBe(10)
-        ->and($environment->databaseUserId)->toBe(20);
+        ->branch->toBe('feat/hu-456')
+        ->siteId->toBe(200)
+        ->databaseId->toBe(10)
+        ->databaseUserId->toBe(20);
 });
 
 test('retorna null quando site não existe', function (): void {
@@ -327,12 +327,13 @@ test('envia dados corretos para criação de usuário de banco', function (): vo
     $builder = makeEnvironmentBuilder($forgeClient);
     $builder->create('feat/test');
 
-    expect($capturedData)->toHaveKey('name')
+    expect($capturedData)
+        ->toHaveKey('name')
+        ->toHaveKey('password')
+        ->toHaveKey('databases')
         ->and($capturedData['name'])->toBe('review_feat_test')
-        ->and($capturedData)->toHaveKey('password')
         ->and($capturedData['password'])->toMatch('/^[a-zA-Z0-9]+$/')
         ->and(mb_strlen((string) $capturedData['password']))->toBe(32)
-        ->and($capturedData)->toHaveKey('databases')
         ->and($capturedData['databases'])->toBe([1]);
 });
 
@@ -384,7 +385,6 @@ test('trunca nome do banco para respeitar limite de 32 caracteres', function ():
 
     expect(mb_strlen((string) $capturedDbData['name']))->toBeLessThanOrEqual(32)
         ->and($capturedDbData['name'])->toStartWith('review_')
-        ->and($capturedDbData['name'])->toMatch('/^review_sprint_16_feature_[a-z0-9_]+$/')
-        ->and(mb_strlen((string) $capturedUserData['name']))->toBeLessThanOrEqual(32)
+        ->toMatch('/^review_sprint_16_feature_[a-z0-9_]+$/')
         ->and($capturedUserData['name'])->toBe($capturedDbData['name']);
 });

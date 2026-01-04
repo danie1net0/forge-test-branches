@@ -14,11 +14,12 @@ test('creates instance with all parameters', function (): void {
         databases: [789, 790],
     );
 
-    expect($data->id)->toBe(101)
-        ->and($data->serverId)->toBe(123)
-        ->and($data->name)->toBe('review_user')
-        ->and($data->status)->toBe('installed')
-        ->and($data->databases)->toBe([789, 790]);
+    expect($data)
+        ->id->toBe(101)
+        ->serverId->toBe(123)
+        ->name->toBe('review_user')
+        ->status->toBe('installed')
+        ->databases->toBe([789, 790]);
 });
 
 test('creates instance without databases', function (): void {

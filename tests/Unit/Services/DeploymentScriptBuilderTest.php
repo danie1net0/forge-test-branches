@@ -13,11 +13,12 @@ test('generates default deploy script with branch', function (): void {
     $builder = new DeploymentScriptBuilder();
     $script = $builder->build('feat/hu-123');
 
-    expect($script)->toContain('git fetch origin feat/hu-123')
-        ->and($script)->toContain('git reset --hard origin/feat/hu-123')
-        ->and($script)->toContain('git clean -fd')
-        ->and($script)->toContain('$FORGE_COMPOSER install')
-        ->and($script)->not->toContain('db:seed');
+    expect($script)
+        ->toContain('git fetch origin feat/hu-123')
+        ->toContain('git reset --hard origin/feat/hu-123')
+        ->toContain('git clean -fd')
+        ->toContain('$FORGE_COMPOSER install')
+        ->not->toContain('db:seed');
 });
 
 test('uses custom script when configured', function (): void {

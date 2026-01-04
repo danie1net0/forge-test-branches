@@ -36,7 +36,7 @@ test('cria ambiente com sucesso', function (): void {
     $result = $forgeTestBranches->create('feat/new');
 
     expect($result)->toBeInstanceOf(EnvironmentData::class)
-        ->and($result->branch)->toBe('feat/new');
+        ->branch->toBe('feat/new');
 });
 
 test('destrói ambiente com sucesso', function (): void {
@@ -112,7 +112,7 @@ test('encontra ambiente existente', function (): void {
     $result = $forgeTestBranches->find('feat/existing');
 
     expect($result)->not->toBeNull()
-        ->and($result->siteId)->toBe(456);
+        ->siteId->toBe(456);
 });
 
 test('retorna null quando ambiente não existe', function (): void {
@@ -139,6 +139,6 @@ test('verifica se ambiente existe', function (): void {
 
     $forgeTestBranches = new ForgeTestBranches($builder);
 
-    expect($forgeTestBranches->exists('feat/existing'))->toBeTrue()
-        ->and($forgeTestBranches->exists('feat/nonexistent'))->toBeFalse();
+    expect($forgeTestBranches->exists('feat/existing'))->toBeTrue();
+    expect($forgeTestBranches->exists('feat/nonexistent'))->toBeFalse();
 });

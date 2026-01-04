@@ -15,8 +15,9 @@ test('serializes to array with correct field names for Forge API', function (): 
 
     $array = $data->toArray();
 
-    expect($array)->toHaveKey('name')
-        ->and($array['name'])->toBe('review_db')
-        ->and($array)->not->toHaveKey('user')
-        ->and($array)->not->toHaveKey('password');
+    expect($array)
+        ->toHaveKey('name')
+        ->not->toHaveKey('user')
+        ->not->toHaveKey('password')
+        ->and($array['name'])->toBe('review_db');
 });

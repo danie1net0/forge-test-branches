@@ -13,9 +13,10 @@ test('creates instance with all parameters', function (): void {
         createdAt: '2024-01-01 00:00:00',
     );
 
-    expect($data->id)->toBe(789)
-        ->and($data->serverId)->toBe(123)
-        ->and($data->name)->toBe('review_db')
-        ->and($data->status)->toBe('installed')
-        ->and($data->createdAt)->toBe('2024-01-01 00:00:00');
+    expect($data)
+        ->id->toBe(789)
+        ->serverId->toBe(123)
+        ->name->toBe('review_db')
+        ->status->toBe('installed')
+        ->createdAt->toBe('2024-01-01 00:00:00');
 });

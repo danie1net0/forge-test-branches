@@ -40,13 +40,14 @@ test('creates instance with all parameters', function (): void {
         webDirectory: '/public',
     );
 
-    expect($data->id)->toBe(456)
-        ->and($data->serverId)->toBe(123)
-        ->and($data->name)->toBe('test.example.com')
-        ->and($data->directory)->toBe('/public')
-        ->and($data->repository)->toBe('user/repo')
-        ->and($data->repositoryProvider)->toBe('gitlab')
-        ->and($data->quickDeploy)->toBeTrue()
-        ->and($data->isSecured)->toBeTrue()
-        ->and($data->phpVersion)->toBe('php83');
+    expect($data)
+        ->id->toBe(456)
+        ->serverId->toBe(123)
+        ->name->toBe('test.example.com')
+        ->directory->toBe('/public')
+        ->repository->toBe('user/repo')
+        ->repositoryProvider->toBe('gitlab')
+        ->quickDeploy->toBeTrue()
+        ->isSecured->toBeTrue()
+        ->phpVersion->toBe('php83');
 });

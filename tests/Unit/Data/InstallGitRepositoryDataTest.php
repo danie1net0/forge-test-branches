@@ -10,10 +10,11 @@ test('creates instance with required parameters', function (): void {
         repository: 'user/repo',
     );
 
-    expect($data->provider)->toBe('gitlab')
-        ->and($data->repository)->toBe('user/repo')
-        ->and($data->branch)->toBeNull()
-        ->and($data->composer)->toBeNull();
+    expect($data)
+        ->provider->toBe('gitlab')
+        ->repository->toBe('user/repo')
+        ->branch->toBeNull()
+        ->composer->toBeNull();
 });
 
 test('creates instance with all parameters', function (): void {
@@ -24,8 +25,9 @@ test('creates instance with all parameters', function (): void {
         composer: true,
     );
 
-    expect($data->provider)->toBe('github')
-        ->and($data->repository)->toBe('user/repo')
-        ->and($data->branch)->toBe('main')
-        ->and($data->composer)->toBeTrue();
+    expect($data)
+        ->provider->toBe('github')
+        ->repository->toBe('user/repo')
+        ->branch->toBe('main')
+        ->composer->toBeTrue();
 });

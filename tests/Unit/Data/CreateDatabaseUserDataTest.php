@@ -10,9 +10,10 @@ test('creates instance with required parameters', function (): void {
         password: 'secret123',
     );
 
-    expect($data->name)->toBe('review_user')
-        ->and($data->password)->toBe('secret123')
-        ->and($data->databases)->toBe([]);
+    expect($data)
+        ->name->toBe('review_user')
+        ->password->toBe('secret123')
+        ->databases->toBe([]);
 });
 
 test('creates instance with databases', function (): void {
@@ -22,9 +23,10 @@ test('creates instance with databases', function (): void {
         databases: [789, 790],
     );
 
-    expect($data->name)->toBe('review_user')
-        ->and($data->password)->toBe('secret123')
-        ->and($data->databases)->toBe([789, 790]);
+    expect($data)
+        ->name->toBe('review_user')
+        ->password->toBe('secret123')
+        ->databases->toBe([789, 790]);
 });
 
 test('serializes to array with correct field names for Forge API', function (): void {
@@ -36,9 +38,10 @@ test('serializes to array with correct field names for Forge API', function (): 
 
     $array = $data->toArray();
 
-    expect($array)->toHaveKey('name')
+    expect($array)
+        ->toHaveKey('name')
+        ->toHaveKey('password')
+        ->toHaveKey('databases')
         ->and($array['name'])->toBe('review_user')
-        ->and($array)->toHaveKey('password')
-        ->and($array['password'])->toBe('secret123')
-        ->and($array)->toHaveKey('databases');
+        ->and($array['password'])->toBe('secret123');
 });
