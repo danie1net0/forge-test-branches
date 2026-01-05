@@ -202,17 +202,27 @@ return [
     | Environment Variables
     |--------------------------------------------------------------------------
     |
-    | Additional environment variables to be set in the .env file
-    | of the review environment. Supports the {slug} placeholder which
-    | will be replaced with the branch slug.
+    | Environment variable configuration for review environments.
     |
-    | Example:
-    | 'env_variables' => [
-    |     'APP_URL' => 'https://{slug}.review.mysite.com',
-    |     'CACHE_PREFIX' => '{slug}_cache',
-    | ],
+    | - copy_from_local: Array of variable names to copy from the main .env file
+    |                    Example: ['APP_KEY', 'PUSHER_APP_ID', 'AWS_ACCESS_KEY_ID']
+    |
+    | - template_file: Path to a template .env file for review environments
+    |                  Example: base_path('.env.review')
+    |
+    | - variables: Additional variables to set. Supports placeholders:
+    |              - {slug}: replaced with the sanitized branch name
+    |              - {env:VAR}: replaced with value from current environment
+    |              Example: [
+    |                  'APP_URL' => 'https://{slug}.review.mysite.com',
+    |                  'APP_KEY' => '{env:APP_KEY}',
+    |              ]
     |
     */
 
-    'env_variables' => [],
+    'env_variables' => [
+        'copy_from_local' => [],
+        'template_file' => null,
+        'variables' => [],
+    ],
 ];

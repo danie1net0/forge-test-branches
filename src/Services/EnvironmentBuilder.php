@@ -189,11 +189,7 @@ class EnvironmentBuilder
             'DB_PASSWORD' => $dbPassword,
         ];
 
-        $customVariables = config('forge-test-branches.env_variables', []);
-
-        foreach ($customVariables as $key => $value) {
-            $envVariables[$key] = str_replace('{slug}', $slug, $value);
-        }
+        $envVariables = array_merge($envVariables, $this->buildEnvironmentVariables($slug));
 
         $updatedEnv = $this->mergeEnvVariables($currentEnv, $envVariables);
 
@@ -243,5 +239,126 @@ class EnvironmentBuilder
     {
         $certificate = $this->forge->sites()->obtainLetsEncryptCertificate($serverId, $siteId, [$domain]);
         $this->forge->sites()->waitForCertificateActivation($serverId, $siteId, $certificate->id);
+    }
+
+    /**
+     * @return array<string, string>
+     */
+    protected function buildEnvironmentVariables(string $slug): array
+    {
+        $variables = [];
+
+        $variables = array_merge($variables, $this->copyVariablesFromLocal());
+        $variables = array_merge($variables, $this->loadVariablesFromTemplate());
+
+        return array_merge($variables, $this->processCustomVariables($slug));
+    }
+
+    /**
+     * @return array<string, string>
+     */
+    protected function copyVariablesFromLocal(): array
+    {
+        $copyFrom = config('forge-test-branches.env_variables.copy_from_local', []);
+
+        if (! is_array($copyFrom)) {
+            return [];
+        }
+
+        $variables = [];
+
+        foreach ($copyFrom as $key) {
+            $value = env($key);
+
+            if ($value !== null) {
+                $variables[$key] = (string) $value;
+            }
+        }
+
+        return $variables;
+    }
+
+    /**
+     * @return array<string, string>
+     */
+    protected function loadVariablesFromTemplate(): array
+    {
+        $templatePath = config('forge-test-branches.env_variables.template_file');
+
+        if (! $templatePath || ! file_exists($templatePath)) {
+            return [];
+        }
+
+        $content = file_get_contents($templatePath);
+
+        if ($content === false) {
+            return [];
+        }
+
+        return $this->parseEnvContent($content);
+    }
+
+    /**
+     * @return array<string, string>
+     */
+    protected function parseEnvContent(string $content): array
+    {
+        $lines = explode("\n", $content);
+        $variables = [];
+
+        foreach ($lines as $line) {
+            $trimmed = mb_trim($line);
+
+            if ($trimmed === '') {
+                continue;
+            }
+
+            if (str_starts_with($trimmed, '#')) {
+                continue;
+            }
+
+            $parts = explode('=', $line, 2);
+
+            if (count($parts) === 2) {
+                $variables[$parts[0]] = $parts[1];
+            }
+        }
+
+        return $variables;
+    }
+
+    /**
+     * @return array<string, string>
+     */
+    protected function processCustomVariables(string $slug): array
+    {
+        $customVariables = config('forge-test-branches.env_variables.variables', []);
+
+        if (! is_array($customVariables)) {
+            return [];
+        }
+
+        $variables = [];
+
+        foreach ($customVariables as $key => $value) {
+            $processed = str_replace('{slug}', $slug, (string) $value);
+            $processed = $this->replaceEnvPlaceholders($processed);
+            $variables[$key] = $processed;
+        }
+
+        return $variables;
+    }
+
+    protected function replaceEnvPlaceholders(string $value): string
+    {
+        return (string) preg_replace_callback(
+            '/\{env:([A-Z_]+)\}/',
+            function (array $matches): string {
+                $envValue = env($matches[1]);
+
+                return $envValue !== null ? (string) $envValue : '';
+            },
+            $value
+        );
     }
 }
