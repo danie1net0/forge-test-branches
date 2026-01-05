@@ -1,3 +1,10 @@
+# [1.4.0](https://github.com/danie1net0/forge-test-branches/compare/v1.3.0...v1.4.0) (2026-01-05)
+
+
+### Features
+
+* **env:** add flexible environment variable management ([f3ed5c7](https://github.com/danie1net0/forge-test-branches/commit/f3ed5c7141ac1c0caefd2be3f744d8603ee6729b))
+
 # [1.3.0](https://github.com/danie1net0/forge-test-branches/compare/v1.2.0...v1.3.0) (2026-01-05)
 
 
