@@ -1,3 +1,10 @@
+## [1.4.1](https://github.com/danie1net0/forge-test-branches/compare/v1.4.0...v1.4.1) (2026-01-05)
+
+
+### Bug Fixes
+
+* **config:** detecta repositório automaticamente do GitLab CI ([8cbf205](https://github.com/danie1net0/forge-test-branches/commit/8cbf205ef291f7e63a07086d18fd0617dc7c6ee1))
+
 # [1.4.0](https://github.com/danie1net0/forge-test-branches/compare/v1.3.0...v1.4.0) (2026-01-05)
 
 
