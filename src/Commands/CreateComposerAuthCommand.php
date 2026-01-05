@@ -30,6 +30,9 @@ class CreateComposerAuthCommand extends Command
         return $this->create($authConfig);
     }
 
+    /**
+     * @param  array<string, mixed>  $authConfig
+     */
     protected function create(array $authConfig): int
     {
         $processedConfig = $this->processPlaceholders($authConfig);
