@@ -56,11 +56,14 @@ return [
     | - provider: Git provider (gitlab, github, bitbucket)
     | - repository: Repository in user/repo format
     |
+    | When running in GitLab CI, the repository is automatically detected
+    | from CI_PROJECT_PATH if FORGE_GIT_REPOSITORY is not set.
+    |
     */
 
     'git' => [
         'provider' => env('FORGE_GIT_PROVIDER', 'gitlab'),
-        'repository' => env('FORGE_GIT_REPOSITORY'),
+        'repository' => env('FORGE_GIT_REPOSITORY', env('CI_PROJECT_PATH')),
     ],
 
     /*
