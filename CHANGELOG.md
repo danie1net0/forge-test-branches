@@ -1,3 +1,17 @@
+# [1.2.0](https://github.com/danie1net0/forge-test-branches/compare/v1.1.10...v1.2.0) (2026-01-05)
+
+
+### Bug Fixes
+
+* **commands:** replace else with early return in DebugRequestCommand ([9a2ad2a](https://github.com/danie1net0/forge-test-branches/commit/9a2ad2a69b0065a33a08651901d792f8284a204a))
+* **deploy:** wait for repository installation before updating script ([81461ae](https://github.com/danie1net0/forge-test-branches/commit/81461ae96bb3ea4fad14f6c08f0cb7575186c5df))
+* **tests:** add type hints to callback parameters ([a8e0e94](https://github.com/danie1net0/forge-test-branches/commit/a8e0e947daeba0dc11de1cf7bfe3680471f14ffd))
+
+
+### Features
+
+* **commands:** add update-script command to update deploy script ([d151a7e](https://github.com/danie1net0/forge-test-branches/commit/d151a7e555e4bc63344cc6ed4dbcd0d50f215d02))
+
 ## [1.1.10](https://github.com/danie1net0/forge-test-branches/compare/v1.1.9...v1.1.10) (2026-01-02)
 
 
