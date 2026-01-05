@@ -1,3 +1,10 @@
+# [1.3.0](https://github.com/danie1net0/forge-test-branches/compare/v1.2.0...v1.3.0) (2026-01-05)
+
+
+### Features
+
+* **ssl:** add automatic SSL certificate support with Let's Encrypt ([92ca75a](https://github.com/danie1net0/forge-test-branches/commit/92ca75aa5f2a5bad1c08326eda23cbb65e4f1dcb))
+
 # [1.2.0](https://github.com/danie1net0/forge-test-branches/compare/v1.1.10...v1.2.0) (2026-01-05)
 
 
