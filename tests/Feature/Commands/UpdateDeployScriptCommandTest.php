@@ -16,7 +16,7 @@ beforeEach(function (): void {
     ]);
 });
 
-test('atualiza script de deploy de ambiente existente', function (): void {
+test('updates deploy script of existing environment', function (): void {
     $siteResource = Mockery::mock(SiteResource::class);
     $databaseResource = Mockery::mock(DatabaseResource::class);
     $databaseUserResource = Mockery::mock(DatabaseUserResource::class);
@@ -82,7 +82,7 @@ test('atualiza script de deploy de ambiente existente', function (): void {
         ->assertSuccessful();
 });
 
-test('falha quando branch não é especificada', function (): void {
+test('fails when branch is not specified', function (): void {
     config(['forge-test-branches.forge_api_token' => 'test-token']);
 
     $this->artisan('forge-test-branches:update-script')
@@ -90,7 +90,7 @@ test('falha quando branch não é especificada', function (): void {
         ->assertFailed();
 });
 
-test('falha quando ambiente não existe', function (): void {
+test('fails when environment does not exist', function (): void {
     $siteResource = Mockery::mock(SiteResource::class);
     $siteResource->shouldReceive('findByDomain')
         ->once()

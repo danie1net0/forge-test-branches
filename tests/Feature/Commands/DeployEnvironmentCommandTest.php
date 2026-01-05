@@ -22,13 +22,13 @@ function makeEnvData(string $branch, string $slug): EnvironmentData
     );
 }
 
-test('exibe erro quando branch não é especificada', function (): void {
+test('displays error when branch is not specified', function (): void {
     $this->artisan('forge-test-branches:deploy')
         ->expectsOutput('Branch not specified. Use --branch=branch-name or set CI_COMMIT_REF_NAME')
         ->assertExitCode(1);
 });
 
-test('exibe erro quando ambiente não existe', function (): void {
+test('displays error when environment does not exist', function (): void {
     $builder = Mockery::mock(EnvironmentBuilder::class);
     $builder->shouldReceive('find')
         ->once()
@@ -42,7 +42,7 @@ test('exibe erro quando ambiente não existe', function (): void {
         ->assertExitCode(1);
 });
 
-test('faz deploy com sucesso', function (): void {
+test('deploys successfully', function (): void {
     $environment = makeEnvData('feat/to-deploy', 'feat-to-deploy');
 
     $builder = Mockery::mock(EnvironmentBuilder::class);
@@ -62,7 +62,7 @@ test('faz deploy com sucesso', function (): void {
         ->assertExitCode(0);
 });
 
-test('exibe erro quando deploy falha', function (): void {
+test('displays error when deploy fails', function (): void {
     $environment = makeEnvData('feat/error', 'feat-error');
 
     $builder = Mockery::mock(EnvironmentBuilder::class);

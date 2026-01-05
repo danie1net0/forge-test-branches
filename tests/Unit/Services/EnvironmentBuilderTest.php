@@ -74,7 +74,7 @@ function makeEnvironmentBuilder(ForgeClient $forgeClient): EnvironmentBuilder
     );
 }
 
-test('cria ambiente completo com sucesso', function (): void {
+test('creates complete environment successfully', function (): void {
     $databaseResource = Mockery::mock(DatabaseResource::class);
     $databaseUserResource = Mockery::mock(DatabaseUserResource::class);
     $siteResource = Mockery::mock(SiteResource::class);
@@ -126,7 +126,7 @@ test('cria ambiente completo com sucesso', function (): void {
         ->databaseUserId->toBe(2);
 });
 
-test('encontra ambiente existente via Forge API', function (): void {
+test('finds existing environment via Forge API', function (): void {
     $databaseResource = Mockery::mock(DatabaseResource::class);
     $databaseUserResource = Mockery::mock(DatabaseUserResource::class);
     $siteResource = Mockery::mock(SiteResource::class);
@@ -161,7 +161,7 @@ test('encontra ambiente existente via Forge API', function (): void {
         ->databaseUserId->toBe(20);
 });
 
-test('retorna null quando site não existe', function (): void {
+test('returns null when site does not exist', function (): void {
     $siteResource = Mockery::mock(SiteResource::class);
     $siteResource->shouldReceive('findByDomain')
         ->once()
@@ -177,7 +177,7 @@ test('retorna null quando site não existe', function (): void {
     expect($environment)->toBeNull();
 });
 
-test('verifica se ambiente existe', function (): void {
+test('checks if environment exists', function (): void {
     $siteResource = Mockery::mock(SiteResource::class);
     $siteResource->shouldReceive('findByDomain')
         ->once()
@@ -200,7 +200,7 @@ test('verifica se ambiente existe', function (): void {
     expect($builder->exists('feat/exists'))->toBeTrue();
 });
 
-test('verifica que ambiente não existe', function (): void {
+test('checks that environment does not exist', function (): void {
     $siteResource = Mockery::mock(SiteResource::class);
     $siteResource->shouldReceive('findByDomain')
         ->once()
@@ -214,7 +214,7 @@ test('verifica que ambiente não existe', function (): void {
     expect($builder->exists('feat/not-exists'))->toBeFalse();
 });
 
-test('destrói ambiente removendo recursos na ordem correta', function (): void {
+test('destroys environment removing resources in correct order', function (): void {
     $environment = new EnvironmentData(
         branch: 'feat/hu-456',
         slug: 'feat-hu-456',
@@ -244,7 +244,7 @@ test('destrói ambiente removendo recursos na ordem correta', function (): void 
     expect(true)->toBeTrue();
 });
 
-test('destrói ambiente sem database quando não existe', function (): void {
+test('destroys environment without database when it does not exist', function (): void {
     $environment = new EnvironmentData(
         branch: 'feat/no-db',
         slug: 'feat-no-db',
@@ -265,7 +265,7 @@ test('destrói ambiente sem database quando não existe', function (): void {
     expect(true)->toBeTrue();
 });
 
-test('faz deploy de ambiente existente', function (): void {
+test('deploys existing environment', function (): void {
     $environment = new EnvironmentData(
         branch: 'feat/hu-789',
         slug: 'feat-hu-789',
@@ -288,7 +288,7 @@ test('faz deploy de ambiente existente', function (): void {
     expect(true)->toBeTrue();
 });
 
-test('envia dados corretos para criação de usuário de banco', function (): void {
+test('sends correct data for database user creation', function (): void {
     $capturedData = null;
 
     $databaseResource = Mockery::mock(DatabaseResource::class);
@@ -338,7 +338,7 @@ test('envia dados corretos para criação de usuário de banco', function (): vo
         ->and($capturedData['databases'])->toBe([1]);
 });
 
-test('trunca nome do banco para respeitar limite de 32 caracteres', function (): void {
+test('truncates database name to respect 32 character limit', function (): void {
     $capturedDbData = null;
     $capturedUserData = null;
 
@@ -390,7 +390,7 @@ test('trunca nome do banco para respeitar limite de 32 caracteres', function ():
         ->and($capturedUserData['name'])->toBe($capturedDbData['name']);
 });
 
-test('processa placeholders {slug} e {env:VAR} nas variáveis de ambiente', function (): void {
+test('processes {slug} and {env:VAR} placeholders in environment variables', function (): void {
     putenv('BASE_APP_KEY=key123');
 
     config([

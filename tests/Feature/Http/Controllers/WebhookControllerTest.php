@@ -23,13 +23,13 @@ function makeWebhookEnvData(string $branch, string $slug): EnvironmentData
     );
 }
 
-test('ignora eventos que não são push hook', function (): void {
+test('ignores events that are not push hook', function (): void {
     $this->postJson('/forge-test-branches/webhook', [], ['X-Gitlab-Event' => 'Merge Request Hook'])
         ->assertOk()
         ->assertJson(['message' => 'Event ignored']);
 });
 
-test('ignora quando não é uma exclusão de branch', function (): void {
+test('ignores when it is not a branch deletion', function (): void {
     $this->postJson('/forge-test-branches/webhook', [
         'ref' => 'refs/heads/feat/test',
         'after' => 'abc123',
@@ -38,7 +38,7 @@ test('ignora quando não é uma exclusão de branch', function (): void {
         ->assertJson(['message' => 'Not a branch deletion']);
 });
 
-test('retorna ambiente não encontrado quando branch não existe', function (): void {
+test('returns environment not found when branch does not exist', function (): void {
     $builder = Mockery::mock(EnvironmentBuilder::class);
     $builder->shouldReceive('find')
         ->once()
@@ -55,7 +55,7 @@ test('retorna ambiente não encontrado quando branch não existe', function (): 
         ->assertJson(['message' => 'Environment not found']);
 });
 
-test('destrói ambiente com sucesso ao receber webhook de exclusão', function (): void {
+test('destroys environment successfully when receiving deletion webhook', function (): void {
     $environment = makeWebhookEnvData('feat/to-destroy', 'feat-to-destroy');
 
     $builder = Mockery::mock(EnvironmentBuilder::class);
@@ -77,7 +77,7 @@ test('destrói ambiente com sucesso ao receber webhook de exclusão', function (
         ->assertJson(['message' => 'Environment destroyed successfully']);
 });
 
-test('retorna erro quando destruição do ambiente falha', function (): void {
+test('returns error when environment destruction fails', function (): void {
     $environment = makeWebhookEnvData('feat/error', 'feat-error');
 
     $builder = Mockery::mock(EnvironmentBuilder::class);
@@ -99,13 +99,13 @@ test('retorna erro quando destruição do ambiente falha', function (): void {
         ->assertJson(['message' => 'Error destroying environment', 'error' => 'API Error']);
 });
 
-test('ignora eventos do github que não são delete', function (): void {
+test('ignores github events that are not delete', function (): void {
     $this->postJson('/forge-test-branches/webhook', [], ['X-GitHub-Event' => 'push'])
         ->assertOk()
         ->assertJson(['message' => 'Event ignored']);
 });
 
-test('ignora delete do github quando ref_type não é branch', function (): void {
+test('ignores github delete when ref_type is not branch', function (): void {
     $this->postJson('/forge-test-branches/webhook', [
         'ref' => 'v1.0.0',
         'ref_type' => 'tag',
@@ -114,7 +114,7 @@ test('ignora delete do github quando ref_type não é branch', function (): void
         ->assertJson(['message' => 'Not a branch deletion']);
 });
 
-test('retorna ambiente não encontrado para branch inexistente via github', function (): void {
+test('returns environment not found for nonexistent branch via github', function (): void {
     $builder = Mockery::mock(EnvironmentBuilder::class);
     $builder->shouldReceive('find')
         ->once()
@@ -131,7 +131,7 @@ test('retorna ambiente não encontrado para branch inexistente via github', func
         ->assertJson(['message' => 'Environment not found']);
 });
 
-test('destrói ambiente via webhook do github', function (): void {
+test('destroys environment via github webhook', function (): void {
     $environment = makeWebhookEnvData('feat/github-destroy', 'feat-github-destroy');
 
     $builder = Mockery::mock(EnvironmentBuilder::class);

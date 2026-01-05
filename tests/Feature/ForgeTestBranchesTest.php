@@ -23,7 +23,7 @@ function makeEnvironment(string $branch = 'feat/new', string $slug = 'feat-new')
     );
 }
 
-test('cria ambiente com sucesso', function (): void {
+test('creates environment successfully', function (): void {
     $environment = makeEnvironment();
 
     $builder = Mockery::mock(EnvironmentBuilder::class);
@@ -39,7 +39,7 @@ test('cria ambiente com sucesso', function (): void {
         ->branch->toBe('feat/new');
 });
 
-test('destrói ambiente com sucesso', function (): void {
+test('destroys environment successfully', function (): void {
     $environment = makeEnvironment('feat/to-destroy', 'feat-to-destroy');
 
     $builder = Mockery::mock(EnvironmentBuilder::class);
@@ -57,7 +57,7 @@ test('destrói ambiente com sucesso', function (): void {
     expect(true)->toBeTrue();
 });
 
-test('lança exceção ao tentar destruir ambiente inexistente', function (): void {
+test('throws exception when trying to destroy nonexistent environment', function (): void {
     $builder = Mockery::mock(EnvironmentBuilder::class);
     $builder->shouldReceive('find')
         ->once()
@@ -69,7 +69,7 @@ test('lança exceção ao tentar destruir ambiente inexistente', function (): vo
     $forgeTestBranches->destroy('feat/nonexistent');
 })->throws(RuntimeException::class, 'Environment not found for branch: feat/nonexistent');
 
-test('faz deploy com sucesso', function (): void {
+test('deploys successfully', function (): void {
     $environment = makeEnvironment('feat/to-deploy', 'feat-to-deploy');
 
     $builder = Mockery::mock(EnvironmentBuilder::class);
@@ -87,7 +87,7 @@ test('faz deploy com sucesso', function (): void {
     expect(true)->toBeTrue();
 });
 
-test('lança exceção ao tentar fazer deploy em ambiente inexistente', function (): void {
+test('throws exception when trying to deploy to nonexistent environment', function (): void {
     $builder = Mockery::mock(EnvironmentBuilder::class);
     $builder->shouldReceive('find')
         ->once()
@@ -99,7 +99,7 @@ test('lança exceção ao tentar fazer deploy em ambiente inexistente', function
     $forgeTestBranches->deploy('feat/nonexistent');
 })->throws(RuntimeException::class, 'Environment not found for branch: feat/nonexistent');
 
-test('encontra ambiente existente', function (): void {
+test('finds existing environment', function (): void {
     $environment = makeEnvironment('feat/existing', 'feat-existing');
 
     $builder = Mockery::mock(EnvironmentBuilder::class);
@@ -115,7 +115,7 @@ test('encontra ambiente existente', function (): void {
         ->siteId->toBe(456);
 });
 
-test('retorna null quando ambiente não existe', function (): void {
+test('returns null when environment does not exist', function (): void {
     $builder = Mockery::mock(EnvironmentBuilder::class);
     $builder->shouldReceive('find')
         ->once()
@@ -128,7 +128,7 @@ test('retorna null quando ambiente não existe', function (): void {
     expect($result)->toBeNull();
 });
 
-test('verifica se ambiente existe', function (): void {
+test('checks if environment exists', function (): void {
     $builder = Mockery::mock(EnvironmentBuilder::class);
     $builder->shouldReceive('exists')
         ->with('feat/existing')

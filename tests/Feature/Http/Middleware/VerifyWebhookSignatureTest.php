@@ -12,14 +12,14 @@ beforeEach(function (): void {
     $this->app->instance(EnvironmentBuilder::class, $builder);
 });
 
-test('permite requisição quando secret não está configurado', function (): void {
+test('allows request when secret is not configured', function (): void {
     config(['forge-test-branches.webhook.secret' => null]);
 
     $this->postJson('/forge-test-branches/webhook', [], ['X-Gitlab-Event' => 'Push Hook'])
         ->assertOk();
 });
 
-test('permite requisição quando token corresponde ao secret', function (): void {
+test('allows request when token matches secret', function (): void {
     config(['forge-test-branches.webhook.secret' => 'my-secret-token']);
 
     $this->postJson('/forge-test-branches/webhook', [], [
@@ -29,7 +29,7 @@ test('permite requisição quando token corresponde ao secret', function (): voi
         ->assertOk();
 });
 
-test('rejeita requisição quando token não corresponde ao secret', function (): void {
+test('rejects request when token does not match secret', function (): void {
     config(['forge-test-branches.webhook.secret' => 'my-secret-token']);
 
     $this->postJson('/forge-test-branches/webhook', [], [
@@ -39,14 +39,14 @@ test('rejeita requisição quando token não corresponde ao secret', function ()
         ->assertUnauthorized();
 });
 
-test('rejeita requisição quando token está ausente e secret está configurado', function (): void {
+test('rejects request when token is missing and secret is configured', function (): void {
     config(['forge-test-branches.webhook.secret' => 'my-secret-token']);
 
     $this->postJson('/forge-test-branches/webhook', [], ['X-Gitlab-Event' => 'Push Hook'])
         ->assertUnauthorized();
 });
 
-test('permite requisição do github quando assinatura é válida', function (): void {
+test('allows github request when signature is valid', function (): void {
     $secret = 'my-secret-token';
     config(['forge-test-branches.webhook.secret' => $secret]);
 
@@ -61,7 +61,7 @@ test('permite requisição do github quando assinatura é válida', function ():
         ->assertOk();
 });
 
-test('rejeita requisição do github quando assinatura é inválida', function (): void {
+test('rejects github request when signature is invalid', function (): void {
     config(['forge-test-branches.webhook.secret' => 'my-secret-token']);
 
     $payload = json_encode(['ref' => 'feat/test', 'ref_type' => 'branch']);
@@ -74,7 +74,7 @@ test('rejeita requisição do github quando assinatura é inválida', function (
         ->assertUnauthorized();
 });
 
-test('rejeita requisição do github quando assinatura está ausente', function (): void {
+test('rejects github request when signature is missing', function (): void {
     config(['forge-test-branches.webhook.secret' => 'my-secret-token']);
 
     $this->postJson('/forge-test-branches/webhook', ['ref' => 'feat/test'], [

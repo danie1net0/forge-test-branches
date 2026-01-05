@@ -56,7 +56,7 @@ test('includes seed command with specific class when configured', function (): v
     expect($script)->toContain('artisan db:seed --class=ReviewSeeder --force');
 });
 
-test('cria e remove auth.json antes e depois do composer install', function (): void {
+test('creates and removes auth.json before and after composer install', function (): void {
     config([
         'forge-test-branches.deploy.script' => null,
         'forge-test-branches.deploy.seed' => false,

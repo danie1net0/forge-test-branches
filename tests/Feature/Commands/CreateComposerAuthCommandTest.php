@@ -20,7 +20,7 @@ afterEach(function (): void {
     }
 });
 
-test('cria auth.json com configuração simples', function (): void {
+test('creates auth.json with simple configuration', function (): void {
     config([
         'forge-test-branches.composer_auth' => [
             'gitlab-token' => [
@@ -44,7 +44,7 @@ test('cria auth.json com configuração simples', function (): void {
         ->and($content['gitlab-token']['gitlab.com'])->toBe('test-token-123');
 });
 
-test('processa placeholders {env:VAR} corretamente', function (): void {
+test('processes {env:VAR} placeholders correctly', function (): void {
     putenv('TEST_GITLAB_TOKEN=my-secret-token');
 
     config([
@@ -66,7 +66,7 @@ test('processa placeholders {env:VAR} corretamente', function (): void {
     putenv('TEST_GITLAB_TOKEN');
 });
 
-test('suporta múltiplos providers', function (): void {
+test('supports multiple providers', function (): void {
     config([
         'forge-test-branches.composer_auth' => [
             'gitlab-token' => [
@@ -91,7 +91,7 @@ test('suporta múltiplos providers', function (): void {
         ->and($content['github-oauth']['github.com'])->toBe('github-token-456');
 });
 
-test('não cria arquivo quando configuração está vazia', function (): void {
+test('does not create file when configuration is empty', function (): void {
     config(['forge-test-branches.composer_auth' => []]);
 
     $this->artisan(CreateComposerAuthCommand::class)
@@ -101,7 +101,7 @@ test('não cria arquivo quando configuração está vazia', function (): void {
     expect(file_exists(base_path('auth.json')))->toBeFalse();
 });
 
-test('remove auth.json com opção --cleanup', function (): void {
+test('removes auth.json with --cleanup option', function (): void {
     $authPath = base_path('auth.json');
     file_put_contents($authPath, '{"test": "value"}');
 
@@ -114,14 +114,14 @@ test('remove auth.json com opção --cleanup', function (): void {
     expect(file_exists($authPath))->toBeFalse();
 });
 
-test('cleanup não falha quando auth.json não existe', function (): void {
+test('cleanup does not fail when auth.json does not exist', function (): void {
     expect(file_exists(base_path('auth.json')))->toBeFalse();
 
     $this->artisan(CreateComposerAuthCommand::class, ['--cleanup' => true])
         ->assertExitCode(0);
 });
 
-test('gera JSON válido e formatado', function (): void {
+test('generates valid and formatted JSON', function (): void {
     config([
         'forge-test-branches.composer_auth' => [
             'gitlab-token' => [

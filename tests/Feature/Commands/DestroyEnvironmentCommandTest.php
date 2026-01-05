@@ -22,13 +22,13 @@ function makeDestroyEnvData(string $branch, string $slug): EnvironmentData
     );
 }
 
-test('exibe erro quando branch não é especificada', function (): void {
+test('displays error when branch is not specified', function (): void {
     $this->artisan('forge-test-branches:destroy')
         ->expectsOutput('Branch not specified. Use --branch=branch-name or set CI_COMMIT_REF_NAME')
         ->assertExitCode(1);
 });
 
-test('exibe aviso quando ambiente não existe', function (): void {
+test('displays warning when environment does not exist', function (): void {
     $builder = Mockery::mock(EnvironmentBuilder::class);
     $builder->shouldReceive('find')
         ->once()
@@ -42,7 +42,7 @@ test('exibe aviso quando ambiente não existe', function (): void {
         ->assertExitCode(0);
 });
 
-test('destrói ambiente com sucesso', function (): void {
+test('destroys environment successfully', function (): void {
     $environment = makeDestroyEnvData('feat/to-destroy', 'feat-to-destroy');
 
     $builder = Mockery::mock(EnvironmentBuilder::class);
@@ -62,7 +62,7 @@ test('destrói ambiente com sucesso', function (): void {
         ->assertExitCode(0);
 });
 
-test('exibe erro quando destruição do ambiente falha', function (): void {
+test('displays error when environment destruction fails', function (): void {
     $environment = makeDestroyEnvData('feat/error', 'feat-error');
 
     $builder = Mockery::mock(EnvironmentBuilder::class);

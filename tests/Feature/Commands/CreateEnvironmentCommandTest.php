@@ -25,13 +25,13 @@ function makeEnvironmentData(string $branch, string $slug): EnvironmentData
     );
 }
 
-test('exibe erro quando branch não é especificada', function (): void {
+test('displays error when branch is not specified', function (): void {
     $this->artisan('forge-test-branches:create')
         ->expectsOutput('Branch not specified. Use --branch=branch-name or set CI_COMMIT_REF_NAME')
         ->assertExitCode(1);
 });
 
-test('exibe aviso quando ambiente já existe', function (): void {
+test('displays warning when environment already exists', function (): void {
     $environment = makeEnvironmentData('feat/existing', 'feat-existing');
 
     $builder = Mockery::mock(EnvironmentBuilder::class);
@@ -48,7 +48,7 @@ test('exibe aviso quando ambiente já existe', function (): void {
         ->assertExitCode(0);
 });
 
-test('cria ambiente com sucesso', function (): void {
+test('creates environment successfully', function (): void {
     $environment = makeEnvironmentData('feat/new', 'feat-new');
 
     $builder = Mockery::mock(EnvironmentBuilder::class);
@@ -70,7 +70,7 @@ test('cria ambiente com sucesso', function (): void {
         ->assertExitCode(0);
 });
 
-test('exibe erro quando criação do ambiente falha', function (): void {
+test('displays error when environment creation fails', function (): void {
     $builder = Mockery::mock(EnvironmentBuilder::class);
     $builder->shouldReceive('find')
         ->once()
@@ -89,7 +89,7 @@ test('exibe erro quando criação do ambiente falha', function (): void {
         ->assertExitCode(1);
 });
 
-test('exibe aviso quando branch não corresponde aos padrões permitidos', function (): void {
+test('displays warning when branch does not match allowed patterns', function (): void {
     config(['forge-test-branches.branch.patterns' => ['feat/*', 'fix/*']]);
 
     $this->artisan('forge-test-branches:create', ['--branch' => 'main'])
