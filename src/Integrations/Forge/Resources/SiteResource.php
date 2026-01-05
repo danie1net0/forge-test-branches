@@ -5,8 +5,8 @@ declare(strict_types=1);
 namespace Ddr\ForgeTestBranches\Integrations\Forge\Resources;
 
 use Illuminate\Support\Sleep;
-use Ddr\ForgeTestBranches\Data\{CreateSiteData, InstallGitRepositoryData, SiteData};
-use Ddr\ForgeTestBranches\Integrations\Forge\Requests\Sites\{CreateSiteRequest, DeleteSiteRequest, DeploySiteRequest, EnableQuickDeployRequest, GetEnvironmentRequest, GetSiteRequest, InstallGitRepositoryRequest, ListSitesRequest, UpdateDeploymentScriptRequest, UpdateEnvironmentRequest};
+use Ddr\ForgeTestBranches\Data\{CertificateData, CreateSiteData, InstallGitRepositoryData, SiteData};
+use Ddr\ForgeTestBranches\Integrations\Forge\Requests\Sites\{CreateSiteRequest, DeleteSiteRequest, DeploySiteRequest, EnableQuickDeployRequest, GetCertificateRequest, GetEnvironmentRequest, GetSiteRequest, InstallGitRepositoryRequest, ListSitesRequest, ObtainLetsEncryptCertificateRequest, UpdateDeploymentScriptRequest, UpdateEnvironmentRequest};
 use RuntimeException;
 use Ddr\ForgeTestBranches\Integrations\Forge\ForgeConnector;
 
@@ -108,5 +108,39 @@ class SiteResource
     public function updateEnvironment(int $serverId, int $siteId, string $content): void
     {
         $this->connector->send(new UpdateEnvironmentRequest($serverId, $siteId, $content));
+    }
+
+    /**
+     * @param array<string> $domains
+     */
+    public function obtainLetsEncryptCertificate(int $serverId, int $siteId, array $domains): CertificateData
+    {
+        $request = new ObtainLetsEncryptCertificateRequest($serverId, $siteId, $domains);
+        $response = $this->connector->send($request);
+
+        return $request->createDtoFromResponse($response);
+    }
+
+    public function getCertificate(int $serverId, int $siteId, int $certificateId): CertificateData
+    {
+        $request = new GetCertificateRequest($serverId, $siteId, $certificateId);
+        $response = $this->connector->send($request);
+
+        return $request->createDtoFromResponse($response);
+    }
+
+    public function waitForCertificateActivation(int $serverId, int $siteId, int $certificateId, int $maxAttempts = 60, int $sleepSeconds = 5): CertificateData
+    {
+        for ($i = 0; $i < $maxAttempts; $i++) {
+            $certificate = $this->getCertificate($serverId, $siteId, $certificateId);
+
+            if ($certificate->status === 'installed' && $certificate->active) {
+                return $certificate;
+            }
+
+            Sleep::sleep($sleepSeconds);
+        }
+
+        throw new RuntimeException('Timeout waiting for SSL certificate activation');
     }
 }

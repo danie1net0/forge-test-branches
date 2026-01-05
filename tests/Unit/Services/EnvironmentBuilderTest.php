@@ -21,6 +21,7 @@ beforeEach(function (): void {
         'forge-test-branches.git.repository' => 'user/repo',
         'forge-test-branches.deploy.script' => null,
         'forge-test-branches.deploy.quick_deploy' => true,
+        'forge-test-branches.ssl.enabled' => false,
         'forge-test-branches.env_variables' => [],
     ]);
 });

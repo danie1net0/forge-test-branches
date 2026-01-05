@@ -1,8 +1,8 @@
 # Forge Test Branches
 
 [![Latest Version on Packagist](https://img.shields.io/packagist/v/ddr/forge-test-branches.svg?style=flat-square)](https://packagist.org/packages/ddr/forge-test-branches)
-[![GitHub Tests Action Status](https://img.shields.io/github/actions/workflow/status/ddr/forge-test-branches/run-tests.yml?branch=main&label=tests&style=flat-square)](https://github.com/ddr/forge-test-branches/actions?query=workflow%3Arun-tests+branch%3Amain)
-[![GitHub Code Style Action Status](https://img.shields.io/github/actions/workflow/status/ddr/forge-test-branches/fix-php-code-style-issues.yml?branch=main&label=code%20style&style=flat-square)](https://github.com/ddr/forge-test-branches/actions?query=workflow%3A"Fix+PHP+code+style+issues"+branch%3Amain)
+[![GitHub Tests Action Status](https://img.shields.io/github/actions/workflow/status/danie1net0/forge-test-branches/run-tests.yml?branch=main&label=tests&style=flat-square)](https://github.com/ddr/forge-test-branches/actions?query=workflow%3Arun-tests+branch%3Amain)
+[![GitHub Code Style Action Status](https://img.shields.io/github/actions/workflow/status/danie1net0/forge-test-branches/fix-php-code-style-issues.yml?branch=main&label=code%20style&style=flat-square)](https://github.com/ddr/forge-test-branches/actions?query=workflow%3A"Fix+PHP+code+style+issues"+branch%3Amain)
 [![Total Downloads](https://img.shields.io/packagist/dt/ddr/forge-test-branches.svg?style=flat-square)](https://packagist.org/packages/ddr/forge-test-branches)
 
 Create ephemeral test environments (review apps) from git branches on Laravel Forge. Ideal for validating features with stakeholders before merging.

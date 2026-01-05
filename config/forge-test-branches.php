@@ -180,6 +180,25 @@ return [
 
     /*
     |--------------------------------------------------------------------------
+    | SSL Configuration
+    |--------------------------------------------------------------------------
+    |
+    | SSL certificate configuration for review environments.
+    |
+    | - enabled: Whether to automatically obtain SSL certificates (default: true)
+    | - type: Certificate type (letsencrypt)
+    |
+    | When enabled, a Let's Encrypt SSL certificate will be obtained
+    | automatically when creating a new review environment.
+    |
+    */
+
+    'ssl' => [
+        'enabled' => env('FORGE_SSL_ENABLED', true),
+    ],
+
+    /*
+    |--------------------------------------------------------------------------
     | Environment Variables
     |--------------------------------------------------------------------------
     |

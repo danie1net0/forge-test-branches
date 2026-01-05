@@ -32,6 +32,10 @@ class EnvironmentBuilder
         $this->updateEnvironment($serverId, $site->id, $database->name, $databaseUser->name, $databasePassword, $slug);
         $this->updateDeploymentScript($serverId, $site->id, $branch);
 
+        if (config('forge-test-branches.ssl.enabled')) {
+            $this->obtainSslCertificate($serverId, $site->id, $domain);
+        }
+
         if (config('forge-test-branches.deploy.quick_deploy')) {
             $this->forge->sites()->enableQuickDeploy($serverId, $site->id);
         }
@@ -233,5 +237,11 @@ class EnvironmentBuilder
     {
         $script = $this->scriptBuilder->build($branch);
         $this->forge->sites()->updateDeploymentScript($serverId, $siteId, $script);
+    }
+
+    protected function obtainSslCertificate(int $serverId, int $siteId, string $domain): void
+    {
+        $certificate = $this->forge->sites()->obtainLetsEncryptCertificate($serverId, $siteId, [$domain]);
+        $this->forge->sites()->waitForCertificateActivation($serverId, $siteId, $certificate->id);
     }
 }
