@@ -202,6 +202,37 @@ return [
 
     /*
     |--------------------------------------------------------------------------
+    | Composer Authentication
+    |--------------------------------------------------------------------------
+    |
+    | Composer authentication configuration for private repositories.
+    | Automatically creates auth.json during deployment.
+    |
+    | Supports placeholders:
+    | - {env:VAR}: replaced with GitLab CI environment variable
+    |
+    | Supported auth types:
+    | - gitlab-token: GitLab personal/project access tokens
+    | - github-oauth: GitHub personal access tokens
+    | - bitbucket-oauth: Bitbucket app passwords
+    | - http-basic: HTTP basic authentication
+    |
+    | Example:
+    | 'composer_auth' => [
+    |     'gitlab-token' => [
+    |         'gitlab.com' => '{env:GITLAB_TOKEN}',
+    |     ],
+    |     'github-oauth' => [
+    |         'github.com' => '{env:GITHUB_TOKEN}',
+    |     ],
+    | ],
+    |
+    */
+
+    'composer_auth' => [],
+
+    /*
+    |--------------------------------------------------------------------------
     | Environment Variables
     |--------------------------------------------------------------------------
     |
@@ -214,21 +245,12 @@ return [
     | - {slug}: replaced with the sanitized branch name
     | - {env:VAR}: replaced with value from GitLab CI environment variable
     |
-    | COMPOSER_AUTH is automatically exported during deployment if present
-    | in .env, enabling authentication for private Composer repositories.
-    |
     | Example:
     | 'env_variables' => [
     |     'APP_URL' => 'https://{slug}.review.mysite.com',
     |     'APP_KEY' => '{env:APP_KEY}',
     |     'AWS_ACCESS_KEY_ID' => '{env:AWS_ACCESS_KEY_ID}',
     |     'CACHE_PREFIX' => '{slug}_cache',
-    |
-    |     // For private Composer packages on GitLab:
-    |     // 1. Create a GitLab token with read_api + read_repository scopes
-    |     // 2. Add GITLAB_TOKEN to GitLab CI/CD Variables
-    |     // 3. Add COMPOSER_AUTH below (automatically exported during deploy)
-    |     'COMPOSER_AUTH' => '{"gitlab-token":{"gitlab.com":"{env:GITLAB_TOKEN}"}}',
     | ],
     |
     */

@@ -56,7 +56,7 @@ test('includes seed command with specific class when configured', function (): v
     expect($script)->toContain('artisan db:seed --class=ReviewSeeder --force');
 });
 
-test('exports COMPOSER_AUTH from .env before composer install', function (): void {
+test('cria e remove auth.json antes e depois do composer install', function (): void {
     config([
         'forge-test-branches.deploy.script' => null,
         'forge-test-branches.deploy.seed' => false,
@@ -66,6 +66,7 @@ test('exports COMPOSER_AUTH from .env before composer install', function (): voi
     $script = $builder->build('feat/hu-123');
 
     expect($script)
-        ->toContain('if [ -f .env ] && grep -q "^COMPOSER_AUTH=" .env; then')
-        ->toContain('export COMPOSER_AUTH=$(grep "^COMPOSER_AUTH=" .env | cut -d \'=\' -f2- | tr -d "\'\"")');
+        ->toContain('artisan forge-test-branches:create-auth-json')
+        ->toContain('$FORGE_COMPOSER install')
+        ->toContain('artisan forge-test-branches:create-auth-json --cleanup');
 });
