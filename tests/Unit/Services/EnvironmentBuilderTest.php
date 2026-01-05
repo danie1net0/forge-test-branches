@@ -22,11 +22,7 @@ beforeEach(function (): void {
         'forge-test-branches.deploy.script' => null,
         'forge-test-branches.deploy.quick_deploy' => true,
         'forge-test-branches.ssl.enabled' => false,
-        'forge-test-branches.env_variables' => [
-            'copy_from_local' => [],
-            'template_file' => null,
-            'variables' => [],
-        ],
+        'forge-test-branches.env_variables' => [],
     ]);
 });
 
@@ -394,64 +390,13 @@ test('trunca nome do banco para respeitar limite de 32 caracteres', function ():
         ->and($capturedUserData['name'])->toBe($capturedDbData['name']);
 });
 
-test('copia variáveis do .env local quando configurado', function (): void {
-    putenv('TEST_COPY_VAR=copied-value');
-
-    config([
-        'forge-test-branches.env_variables' => [
-            'copy_from_local' => ['TEST_COPY_VAR'],
-            'template_file' => null,
-            'variables' => [],
-        ],
-    ]);
-
-    $capturedEnv = null;
-
-    $databaseResource = Mockery::mock(DatabaseResource::class);
-    $databaseUserResource = Mockery::mock(DatabaseUserResource::class);
-    $siteResource = Mockery::mock(SiteResource::class);
-
-    $databaseResource->shouldReceive('create')->once()->andReturn(new DatabaseData(id: 1, serverId: 12345, name: 'review_test', status: 'installed', createdAt: now()->toDateTimeString()));
-    $databaseUserResource->shouldReceive('create')->once()->andReturn(new DatabaseUserData(id: 2, serverId: 12345, name: 'review_test', status: 'installed', createdAt: now()->toDateTimeString(), databases: [1]));
-    $siteResource->shouldReceive('create')->once()->andReturn(makeSiteData(100, 'test.review.example.com'));
-    $siteResource->shouldReceive('installGitRepository')->once()->andReturn(makeSiteData(100, 'test.review.example.com'));
-    $siteResource->shouldReceive('waitForRepositoryInstallation')->once()->andReturn(makeSiteData(100, 'test.review.example.com'));
-    $siteResource->shouldReceive('getEnvironment')->once()->andReturn('APP_NAME=Laravel');
-    $siteResource->shouldReceive('updateEnvironment')
-        ->once()
-        ->withArgs(function (int $serverId, int $siteId, string $content) use (&$capturedEnv): bool {
-            $capturedEnv = $content;
-
-            return true;
-        });
-    $siteResource->shouldReceive('updateDeploymentScript')->once();
-    $siteResource->shouldReceive('enableQuickDeploy')->once();
-    $siteResource->shouldReceive('deploy')->once();
-
-    $forgeClient = Mockery::mock(ForgeClient::class);
-    $forgeClient->shouldReceive('databases')->andReturn($databaseResource);
-    $forgeClient->shouldReceive('databaseUsers')->andReturn($databaseUserResource);
-    $forgeClient->shouldReceive('sites')->andReturn($siteResource);
-
-    $builder = makeEnvironmentBuilder($forgeClient);
-    $builder->create('test');
-
-    expect($capturedEnv)->toContain('TEST_COPY_VAR=copied-value');
-
-    putenv('TEST_COPY_VAR');
-});
-
-test('processa placeholders {slug} e {env:VAR} nas variáveis customizadas', function (): void {
+test('processa placeholders {slug} e {env:VAR} nas variáveis de ambiente', function (): void {
     putenv('BASE_APP_KEY=key123');
 
     config([
         'forge-test-branches.env_variables' => [
-            'copy_from_local' => [],
-            'template_file' => null,
-            'variables' => [
-                'APP_URL' => 'https://{slug}.review.example.com',
-                'APP_KEY' => '{env:BASE_APP_KEY}',
-            ],
+            'APP_URL' => 'https://{slug}.review.example.com',
+            'APP_KEY' => '{env:BASE_APP_KEY}',
         ],
     ]);
 

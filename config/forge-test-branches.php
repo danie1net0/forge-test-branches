@@ -202,27 +202,24 @@ return [
     | Environment Variables
     |--------------------------------------------------------------------------
     |
-    | Environment variable configuration for review environments.
+    | Additional environment variables to set in review environments.
     |
-    | - copy_from_local: Array of variable names to copy from the main .env file
-    |                    Example: ['APP_KEY', 'PUSHER_APP_ID', 'AWS_ACCESS_KEY_ID']
+    | Designed for GitLab CI/CD pipelines where sensitive values are stored
+    | as GitLab CI/CD Variables (Settings > CI/CD > Variables).
     |
-    | - template_file: Path to a template .env file for review environments
-    |                  Example: base_path('.env.review')
+    | Supported placeholders:
+    | - {slug}: replaced with the sanitized branch name
+    | - {env:VAR}: replaced with value from GitLab CI environment variable
     |
-    | - variables: Additional variables to set. Supports placeholders:
-    |              - {slug}: replaced with the sanitized branch name
-    |              - {env:VAR}: replaced with value from current environment
-    |              Example: [
-    |                  'APP_URL' => 'https://{slug}.review.mysite.com',
-    |                  'APP_KEY' => '{env:APP_KEY}',
-    |              ]
+    | Example:
+    | 'env_variables' => [
+    |     'APP_URL' => 'https://{slug}.review.mysite.com',
+    |     'APP_KEY' => '{env:APP_KEY}',
+    |     'AWS_ACCESS_KEY_ID' => '{env:AWS_ACCESS_KEY_ID}',
+    |     'CACHE_PREFIX' => '{slug}_cache',
+    | ],
     |
     */
 
-    'env_variables' => [
-        'copy_from_local' => [],
-        'template_file' => null,
-        'variables' => [],
-    ],
+    'env_variables' => [],
 ];
