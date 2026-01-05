@@ -55,3 +55,17 @@ test('includes seed command with specific class when configured', function (): v
 
     expect($script)->toContain('artisan db:seed --class=ReviewSeeder --force');
 });
+
+test('exports COMPOSER_AUTH from .env before composer install', function (): void {
+    config([
+        'forge-test-branches.deploy.script' => null,
+        'forge-test-branches.deploy.seed' => false,
+    ]);
+
+    $builder = new DeploymentScriptBuilder();
+    $script = $builder->build('feat/hu-123');
+
+    expect($script)
+        ->toContain('if [ -f .env ] && grep -q "^COMPOSER_AUTH=" .env; then')
+        ->toContain('export COMPOSER_AUTH=$(grep "^COMPOSER_AUTH=" .env | cut -d \'=\' -f2- | tr -d "\'\"")');
+});

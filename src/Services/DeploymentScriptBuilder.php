@@ -27,6 +27,10 @@ class DeploymentScriptBuilder
         git reset --hard origin/{$branch}
         git clean -fd
 
+        if [ -f .env ] && grep -q "^COMPOSER_AUTH=" .env; then
+            export COMPOSER_AUTH=\$(grep "^COMPOSER_AUTH=" .env | cut -d '=' -f2- | tr -d "'\"")
+        fi
+
         \$FORGE_COMPOSER install --no-dev --no-interaction --prefer-dist --optimize-autoloader
 
         ( flock -w 10 9 || exit 1
