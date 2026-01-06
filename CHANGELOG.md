@@ -1,3 +1,15 @@
+# [1.5.0](https://github.com/danie1net0/forge-test-branches/compare/v1.4.1...v1.5.0) (2026-01-06)
+
+
+### Bug Fixes
+
+* **phpstan:** adiciona type hint em CreateComposerAuthCommand ([ef6391f](https://github.com/danie1net0/forge-test-branches/commit/ef6391f5489d0ec84d43db7b70c4dd6aa198ca2e))
+
+
+### Features
+
+* **deploy:** exporta COMPOSER_AUTH automaticamente do .env ([b5b546e](https://github.com/danie1net0/forge-test-branches/commit/b5b546e26fae6238a53b93675a16ebc1b608f096))
+
 ## [1.4.1](https://github.com/danie1net0/forge-test-branches/compare/v1.4.0...v1.4.1) (2026-01-05)
 
 
