@@ -1,3 +1,15 @@
+# [1.6.0](https://github.com/danie1net0/forge-test-branches/compare/v1.5.0...v1.6.0) (2026-01-07)
+
+
+### Bug Fixes
+
+* **phpstan:** use count() function instead of method ([55c0d71](https://github.com/danie1net0/forge-test-branches/commit/55c0d7110d56fbdb572c223a2182e0d6b09bf5ae))
+
+
+### Features
+
+* **commands:** add test-connection command for debugging ([0781dbb](https://github.com/danie1net0/forge-test-branches/commit/0781dbb7e8d29e5a1c9de579be15bffcc14f7b07))
+
 # [1.5.0](https://github.com/danie1net0/forge-test-branches/compare/v1.4.1...v1.5.0) (2026-01-06)
 
 
