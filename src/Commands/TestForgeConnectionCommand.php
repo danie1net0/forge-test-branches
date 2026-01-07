@@ -31,17 +31,17 @@ class TestForgeConnectionCommand extends Command
         try {
             $this->info('1. Testing server access...');
             $sites = $forge->sites()->list($serverId);
-            $this->line("   <fg=green>✓</> Found {$sites->count()} sites on server");
+            $this->line('   <fg=green>✓</> Found ' . count($sites) . ' sites on server');
             $this->newLine();
 
             $this->info('2. Testing database access...');
             $databases = $forge->databases()->list($serverId);
-            $this->line("   <fg=green>✓</> Found {$databases->count()} databases");
+            $this->line('   <fg=green>✓</> Found ' . count($databases) . ' databases');
             $this->newLine();
 
             $this->info('3. Testing database users access...');
             $users = $forge->databaseUsers()->list($serverId);
-            $this->line("   <fg=green>✓</> Found {$users->count()} database users");
+            $this->line('   <fg=green>✓</> Found ' . count($users) . ' database users');
             $this->newLine();
 
             $this->info('<fg=green>All tests passed! Forge API is accessible.</>');
