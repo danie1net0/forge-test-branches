@@ -6,7 +6,7 @@ namespace Ddr\ForgeTestBranches;
 
 use Ddr\ForgeTestBranches\Integrations\Forge\ForgeClient;
 use Spatie\LaravelPackageTools\{Package, PackageServiceProvider};
-use Ddr\ForgeTestBranches\Commands\{CreateComposerAuthCommand, CreateEnvironmentCommand, DebugRequestCommand, DeployEnvironmentCommand, DestroyEnvironmentCommand, InstallCommand, TestForgeConnectionCommand, UpdateDeployScriptCommand};
+use Ddr\ForgeTestBranches\Commands\{CreateComposerAuthCommand, CreateEnvironmentCommand, DeployEnvironmentCommand, DestroyEnvironmentCommand, InstallCommand, TestForgeConnectionCommand, UpdateDeployScriptCommand};
 use Ddr\ForgeTestBranches\Services\{BranchPatternMatcher, BranchSanitizer, DeploymentScriptBuilder, DomainBuilder, EnvironmentBuilder};
 
 class ForgeTestBranchesServiceProvider extends PackageServiceProvider
@@ -24,7 +24,6 @@ class ForgeTestBranchesServiceProvider extends PackageServiceProvider
                 UpdateDeployScriptCommand::class,
                 CreateComposerAuthCommand::class,
                 TestForgeConnectionCommand::class,
-                DebugRequestCommand::class,
             ]);
     }
 
