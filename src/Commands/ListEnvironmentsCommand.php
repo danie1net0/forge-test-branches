@@ -5,9 +5,8 @@ declare(strict_types=1);
 namespace Ddr\ForgeTestBranches\Commands;
 
 use Ddr\ForgeTestBranches\Data\EnvironmentData;
-use Ddr\ForgeTestBranches\Services\EnvironmentBuilder;
+use Ddr\ForgeTestBranches\Services\{EnvironmentBuilder, RemoteBranchResolver};
 use Illuminate\Console\Command;
-use Illuminate\Support\Facades\Process;
 use Throwable;
 
 class ListEnvironmentsCommand extends Command
@@ -18,7 +17,7 @@ class ListEnvironmentsCommand extends Command
 
     protected $description = 'Lists review environments on the server';
 
-    public function handle(EnvironmentBuilder $builder): int
+    public function handle(EnvironmentBuilder $builder, RemoteBranchResolver $remoteBranchResolver): int
     {
         $this->info('Fetching review environments...');
 
@@ -37,7 +36,7 @@ class ListEnvironmentsCommand extends Command
         }
 
         $shouldFilterOrphans = $this->option('orphans') || $this->option('destroy-orphans');
-        $remoteBranches = $shouldFilterOrphans ? $this->getRemoteBranches() : null;
+        $remoteBranches = $shouldFilterOrphans ? $remoteBranchResolver->resolve() : null;
 
         if ($shouldFilterOrphans && $remoteBranches === null) {
             $this->error('Could not fetch remote branches. Check your git credentials and repository configuration.');
@@ -52,7 +51,13 @@ class ListEnvironmentsCommand extends Command
         }
 
         if ($rows === []) {
-            $this->info($shouldFilterOrphans ? 'No orphaned environments found.' : 'No review environments found.');
+            $message = 'No review environments found.';
+
+            if ($shouldFilterOrphans) {
+                $message = 'No orphaned environments found.';
+            }
+
+            $this->info($message);
 
             return self::SUCCESS;
         }
@@ -82,54 +87,6 @@ class ListEnvironmentsCommand extends Command
 
             return [$environment->branch, $environment->domain, $status, $environment->siteId];
         }, $environments);
-    }
-
-    /** @return array<string>|null */
-    private function getRemoteBranches(): ?array
-    {
-        $provider = (string) config('forge-test-branches.git.provider');
-        $repository = (string) config('forge-test-branches.git.repository');
-
-        $host = match ($provider) {
-            'github' => 'github.com',
-            'gitlab' => 'gitlab.com',
-            'bitbucket' => 'bitbucket.org',
-            default => null,
-        };
-
-        if ($host === null) {
-            $this->warn("Unsupported git provider: {$provider}");
-
-            return null;
-        }
-
-        $result = Process::run("git ls-remote --heads https://{$host}/{$repository}.git 2>/dev/null");
-
-        if (! $result->successful()) {
-            $result = Process::run("git ls-remote --heads git@{$host}:{$repository}.git 2>/dev/null");
-        }
-
-        if (! $result->successful()) {
-            return null;
-        }
-
-        $branches = [];
-
-        foreach (explode("\n", mb_trim($result->output())) as $line) {
-            if ($line === '') {
-                continue;
-            }
-
-            $parts = explode("\t", $line);
-
-            if (count($parts) !== 2) {
-                continue;
-            }
-
-            $branches[] = str_replace('refs/heads/', '', $parts[1]);
-        }
-
-        return $branches;
     }
 
     /**

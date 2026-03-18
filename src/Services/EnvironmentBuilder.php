@@ -44,12 +44,12 @@ class EnvironmentBuilder
         $this->updateEnvironment($serverId, $site->id, $database->name, $databaseUser->name, $databasePassword, $slug);
         $this->updateDeploymentScript($serverId, $site->id, $branch);
 
-        if (config('forge-test-branches.ssl.enabled')) {
+        if (config('forge-test-branches.ssl.enabled') === true) {
             $this->obtainSslCertificate($serverId, $site->id, $domain);
             $this->logger->debug('SSL certificate obtained', ['domain' => $domain]);
         }
 
-        if (config('forge-test-branches.deploy.quick_deploy')) {
+        if (config('forge-test-branches.deploy.quick_deploy') === true) {
             $this->forge->sites()->enableQuickDeploy($serverId, $site->id);
         }
 
@@ -134,11 +134,11 @@ class EnvironmentBuilder
 
         $this->forge->sites()->delete($environment->serverId, $environment->siteId);
 
-        if ($environment->databaseUserId) {
+        if ($environment->databaseUserId !== null) {
             $this->forge->databaseUsers()->delete($environment->serverId, $environment->databaseUserId);
         }
 
-        if ($environment->databaseId) {
+        if ($environment->databaseId !== null) {
             $this->forge->databases()->delete($environment->serverId, $environment->databaseId);
         }
 
@@ -206,10 +206,10 @@ class EnvironmentBuilder
             $serverId,
             new CreateSiteData(
                 domain: $domain,
-                projectType: config('forge-test-branches.site.project_type'),
-                directory: config('forge-test-branches.site.directory'),
-                isolated: config('forge-test-branches.site.isolated'),
-                phpVersion: config('forge-test-branches.site.php_version'),
+                projectType: (string) config('forge-test-branches.site.project_type'),
+                directory: (string) config('forge-test-branches.site.directory'),
+                isolated: (bool) config('forge-test-branches.site.isolated'),
+                phpVersion: (string) config('forge-test-branches.site.php_version'),
             )
         );
     }
@@ -220,24 +220,24 @@ class EnvironmentBuilder
             $serverId,
             $siteId,
             new InstallGitRepositoryData(
-                provider: config('forge-test-branches.git.provider'),
-                repository: config('forge-test-branches.git.repository'),
+                provider: (string) config('forge-test-branches.git.provider'),
+                repository: (string) config('forge-test-branches.git.repository'),
                 branch: $branch,
                 composer: true,
             )
         );
     }
 
-    protected function updateEnvironment(int $serverId, int $siteId, string $dbName, string $dbUser, string $dbPassword, string $slug): void
+    protected function updateEnvironment(int $serverId, int $siteId, string $databaseName, string $databaseUser, string $databasePassword, string $slug): void
     {
         $currentEnv = $this->forge->sites()->getEnvironment($serverId, $siteId);
 
         $envVariables = [
             'APP_ENV' => 'staging',
             'APP_DEBUG' => 'true',
-            'DB_DATABASE' => $dbName,
-            'DB_USERNAME' => $dbUser,
-            'DB_PASSWORD' => $dbPassword,
+            'DB_DATABASE' => $databaseName,
+            'DB_USERNAME' => $databaseUser,
+            'DB_PASSWORD' => $databasePassword,
         ];
 
         $envVariables = array_merge($envVariables, $this->buildEnvironmentVariables($slug));
@@ -321,7 +321,11 @@ class EnvironmentBuilder
             function (array $matches): string {
                 $envValue = env($matches[1]);
 
-                return $envValue !== null ? (string) $envValue : '';
+                if ($envValue === null) {
+                    return '';
+                }
+
+                return (string) $envValue;
             },
             $value
         );

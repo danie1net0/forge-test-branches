@@ -200,3 +200,68 @@ test('exibe erro quando falha ao obter branches remotas', function (): void {
         ->expectsOutput('Could not fetch remote branches. Check your git credentials and repository configuration.')
         ->assertExitCode(1);
 });
+
+test('exibe erro quando destruição de órfão falha', function (): void {
+    $fullEnvironment = new EnvironmentData(
+        branch: 'feat/removed',
+        slug: 'feat-removed',
+        domain: 'feat-removed.review.example.com',
+        serverId: 123,
+        siteId: 200,
+        databaseId: 10,
+        databaseUserId: 20,
+    );
+
+    $builder = Mockery::mock(EnvironmentBuilder::class);
+    $builder->shouldReceive('listAll')
+        ->once()
+        ->andReturn([
+            makeListEnvData('feat/removed', 'feat-removed', 200),
+        ]);
+    $builder->shouldReceive('find')
+        ->once()
+        ->with('feat/removed')
+        ->andReturn($fullEnvironment);
+    $builder->shouldReceive('destroy')
+        ->once()
+        ->andThrow(new RuntimeException('Forge API Error'));
+
+    $this->app->instance(EnvironmentBuilder::class, $builder);
+
+    Process::fake([
+        'git ls-remote --heads *' => Process::result(
+            output: "abc123\trefs/heads/main\n"
+        ),
+    ]);
+
+    $this->artisan('forge-test-branches:list', ['--destroy-orphans' => true])
+        ->expectsConfirmation('Destroy 1 orphaned environment(s)? [feat/removed]', 'yes')
+        ->expectsOutput('  Error: Forge API Error')
+        ->assertExitCode(1);
+});
+
+test('exibe warning quando ambiente órfão não é encontrado no find', function (): void {
+    $builder = Mockery::mock(EnvironmentBuilder::class);
+    $builder->shouldReceive('listAll')
+        ->once()
+        ->andReturn([
+            makeListEnvData('feat/removed', 'feat-removed', 200),
+        ]);
+    $builder->shouldReceive('find')
+        ->once()
+        ->with('feat/removed')
+        ->andReturnNull();
+
+    $this->app->instance(EnvironmentBuilder::class, $builder);
+
+    Process::fake([
+        'git ls-remote --heads *' => Process::result(
+            output: "abc123\trefs/heads/main\n"
+        ),
+    ]);
+
+    $this->artisan('forge-test-branches:list', ['--destroy-orphans' => true])
+        ->expectsConfirmation('Destroy 1 orphaned environment(s)? [feat/removed]', 'yes')
+        ->expectsOutput('  Environment not found: feat/removed')
+        ->assertExitCode(0);
+});

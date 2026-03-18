@@ -20,7 +20,7 @@ class VerifyWebhookSignature
     {
         $secret = config('forge-test-branches.webhook.secret');
 
-        if (! $secret) {
+        if (! is_string($secret) || $secret === '') {
             return $next($request);
         }
 
@@ -31,12 +31,12 @@ class VerifyWebhookSignature
         return $this->verifyGitLabToken($request, $next, $secret);
     }
 
-    protected function isGitHubRequest(Request $request): bool
+    private function isGitHubRequest(Request $request): bool
     {
         return $request->hasHeader('X-GitHub-Event');
     }
 
-    protected function verifyGitLabToken(Request $request, Closure $next, string $secret): Response
+    private function verifyGitLabToken(Request $request, Closure $next, string $secret): Response
     {
         $token = $request->header('X-Gitlab-Token');
 
@@ -48,11 +48,11 @@ class VerifyWebhookSignature
         return $next($request);
     }
 
-    protected function verifyGitHubSignature(Request $request, Closure $next, string $secret): Response
+    private function verifyGitHubSignature(Request $request, Closure $next, string $secret): Response
     {
         $signature = $request->header('X-Hub-Signature-256');
 
-        if (! $signature) {
+        if ($signature === null || $signature === '') {
             $this->logger->warning('Webhook rejected: missing GitHub signature');
             abort(401, 'Missing webhook signature');
         }

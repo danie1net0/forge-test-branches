@@ -2,6 +2,7 @@
 
 declare(strict_types=1);
 
+use Ddr\ForgeTestBranches\Data\CertificateData;
 use Ddr\ForgeTestBranches\Data\{CreateDatabaseData, CreateDatabaseUserData, DatabaseData, DatabaseUserData, EnvironmentData, SiteData};
 use Ddr\ForgeTestBranches\Integrations\Forge\ForgeClient;
 use Ddr\ForgeTestBranches\Integrations\Forge\Resources\{DatabaseResource, DatabaseUserResource, SiteResource};
@@ -76,7 +77,7 @@ function makeEnvironmentBuilder(ForgeClient $forgeClient): EnvironmentBuilder
     );
 }
 
-test('creates complete environment successfully', function (): void {
+test('cria ambiente completo com sucesso', function (): void {
     $databaseResource = Mockery::mock(DatabaseResource::class);
     $databaseUserResource = Mockery::mock(DatabaseUserResource::class);
     $siteResource = Mockery::mock(SiteResource::class);
@@ -128,7 +129,7 @@ test('creates complete environment successfully', function (): void {
         ->databaseUserId->toBe(2);
 });
 
-test('finds existing environment via Forge API', function (): void {
+test('encontra ambiente existente via Forge API', function (): void {
     $databaseResource = Mockery::mock(DatabaseResource::class);
     $databaseUserResource = Mockery::mock(DatabaseUserResource::class);
     $siteResource = Mockery::mock(SiteResource::class);
@@ -163,7 +164,7 @@ test('finds existing environment via Forge API', function (): void {
         ->databaseUserId->toBe(20);
 });
 
-test('returns null when site does not exist', function (): void {
+test('retorna null quando site não existe', function (): void {
     $siteResource = Mockery::mock(SiteResource::class);
     $siteResource->shouldReceive('findByDomain')
         ->once()
@@ -179,7 +180,7 @@ test('returns null when site does not exist', function (): void {
     expect($environment)->toBeNull();
 });
 
-test('checks if environment exists', function (): void {
+test('verifica que ambiente existe', function (): void {
     $siteResource = Mockery::mock(SiteResource::class);
     $siteResource->shouldReceive('findByDomain')
         ->once()
@@ -202,7 +203,7 @@ test('checks if environment exists', function (): void {
     expect($builder->exists('feat/exists'))->toBeTrue();
 });
 
-test('checks that environment does not exist', function (): void {
+test('verifica que ambiente não existe', function (): void {
     $siteResource = Mockery::mock(SiteResource::class);
     $siteResource->shouldReceive('findByDomain')
         ->once()
@@ -216,7 +217,7 @@ test('checks that environment does not exist', function (): void {
     expect($builder->exists('feat/not-exists'))->toBeFalse();
 });
 
-test('destroys environment removing resources in correct order', function (): void {
+test('destrói ambiente removendo recursos na ordem correta', function (): void {
     $environment = new EnvironmentData(
         branch: 'feat/hu-456',
         slug: 'feat-hu-456',
@@ -242,11 +243,9 @@ test('destroys environment removing resources in correct order', function (): vo
 
     $builder = makeEnvironmentBuilder($forgeClient);
     $builder->destroy($environment);
-
-    expect(true)->toBeTrue();
 });
 
-test('destroys environment without database when it does not exist', function (): void {
+test('destrói ambiente sem database quando não existe', function (): void {
     $environment = new EnvironmentData(
         branch: 'feat/no-db',
         slug: 'feat-no-db',
@@ -263,11 +262,9 @@ test('destroys environment without database when it does not exist', function ()
 
     $builder = makeEnvironmentBuilder($forgeClient);
     $builder->destroy($environment);
-
-    expect(true)->toBeTrue();
 });
 
-test('deploys existing environment', function (): void {
+test('executa deploy de ambiente existente', function (): void {
     $environment = new EnvironmentData(
         branch: 'feat/hu-789',
         slug: 'feat-hu-789',
@@ -286,11 +283,9 @@ test('deploys existing environment', function (): void {
 
     $builder = makeEnvironmentBuilder($forgeClient);
     $builder->deploy($environment);
-
-    expect(true)->toBeTrue();
 });
 
-test('sends correct data for database user creation', function (): void {
+test('envia dados corretos para criação de usuário de database', function (): void {
     $capturedData = null;
 
     $databaseResource = Mockery::mock(DatabaseResource::class);
@@ -340,7 +335,7 @@ test('sends correct data for database user creation', function (): void {
         ->and($capturedData['databases'])->toBe([1]);
 });
 
-test('truncates database name to respect 32 character limit', function (): void {
+test('trunca nome do database respeitando limite de 32 caracteres', function (): void {
     $capturedDbData = null;
     $capturedUserData = null;
 
@@ -392,7 +387,7 @@ test('truncates database name to respect 32 character limit', function (): void 
         ->and($capturedUserData['name'])->toBe($capturedDbData['name']);
 });
 
-test('processes {slug} and {env:VAR} placeholders in environment variables', function (): void {
+test('processa placeholders {slug} e {env:VAR} nas variáveis de ambiente', function (): void {
     putenv('BASE_APP_KEY=key123');
 
     config([
@@ -497,4 +492,72 @@ test('usa repositoryBranch do site como branch do ambiente', function (): void {
     $environments = $builder->listAll();
 
     expect($environments[0]->branch)->toBe('main');
+});
+
+test('cria ambiente com certificado SSL quando habilitado', function (): void {
+    config(['forge-test-branches.ssl.enabled' => true]);
+
+    $databaseResource = Mockery::mock(DatabaseResource::class);
+    $databaseUserResource = Mockery::mock(DatabaseUserResource::class);
+    $siteResource = Mockery::mock(SiteResource::class);
+
+    $databaseResource->shouldReceive('create')->once()
+        ->andReturn(new DatabaseData(id: 1, serverId: 12345, name: 'review_feat_ssl', status: 'installed', createdAt: now()->toDateTimeString()));
+    $databaseUserResource->shouldReceive('create')->once()
+        ->andReturn(new DatabaseUserData(id: 2, serverId: 12345, name: 'review_feat_ssl', status: 'installed', createdAt: now()->toDateTimeString(), databases: [1]));
+    $siteResource->shouldReceive('create')->once()->andReturn(makeSiteData(100, 'feat-ssl.review.example.com'));
+    $siteResource->shouldReceive('installGitRepository')->once()->andReturn(makeSiteData(100, 'feat-ssl.review.example.com'));
+    $siteResource->shouldReceive('waitForRepositoryInstallation')->once()->andReturn(makeSiteData(100, 'feat-ssl.review.example.com'));
+    $siteResource->shouldReceive('getEnvironment')->once()->andReturn('APP_NAME=Laravel');
+    $siteResource->shouldReceive('updateEnvironment')->once();
+    $siteResource->shouldReceive('updateDeploymentScript')->once();
+    $siteResource->shouldReceive('enableQuickDeploy')->once();
+    $siteResource->shouldReceive('obtainLetsEncryptCertificate')->once()
+        ->andReturn(new CertificateData(id: 1, serverId: 12345, siteId: 100, domains: ['feat-ssl.review.example.com'], requestStatus: 'created', status: 'installed', existing: false, active: true, createdAt: now()->toDateTimeString(), activatedAt: null));
+    $siteResource->shouldReceive('waitForCertificateActivation')->once()
+        ->andReturn(new CertificateData(id: 1, serverId: 12345, siteId: 100, domains: ['feat-ssl.review.example.com'], requestStatus: 'created', status: 'installed', existing: false, active: true, createdAt: now()->toDateTimeString(), activatedAt: now()->toDateTimeString()));
+    $siteResource->shouldReceive('deploy')->once();
+
+    $forgeClient = Mockery::mock(ForgeClient::class);
+    $forgeClient->shouldReceive('databases')->andReturn($databaseResource);
+    $forgeClient->shouldReceive('databaseUsers')->andReturn($databaseUserResource);
+    $forgeClient->shouldReceive('sites')->andReturn($siteResource);
+
+    $builder = makeEnvironmentBuilder($forgeClient);
+    $environment = $builder->create('feat/ssl');
+
+    expect($environment)->toBeInstanceOf(EnvironmentData::class)
+        ->domain->toBe('feat-ssl.review.example.com');
+});
+
+test('não habilita quick deploy quando desabilitado', function (): void {
+    config(['forge-test-branches.deploy.quick_deploy' => false]);
+
+    $databaseResource = Mockery::mock(DatabaseResource::class);
+    $databaseUserResource = Mockery::mock(DatabaseUserResource::class);
+    $siteResource = Mockery::mock(SiteResource::class);
+
+    $databaseResource->shouldReceive('create')->once()
+        ->andReturn(new DatabaseData(id: 1, serverId: 12345, name: 'review_feat_no_qd', status: 'installed', createdAt: now()->toDateTimeString()));
+    $databaseUserResource->shouldReceive('create')->once()
+        ->andReturn(new DatabaseUserData(id: 2, serverId: 12345, name: 'review_feat_no_qd', status: 'installed', createdAt: now()->toDateTimeString(), databases: [1]));
+    $siteResource->shouldReceive('create')->once()->andReturn(makeSiteData(100, 'feat-no-qd.review.example.com'));
+    $siteResource->shouldReceive('installGitRepository')->once()->andReturn(makeSiteData(100, 'feat-no-qd.review.example.com'));
+    $siteResource->shouldReceive('waitForRepositoryInstallation')->once()->andReturn(makeSiteData(100, 'feat-no-qd.review.example.com'));
+    $siteResource->shouldReceive('getEnvironment')->once()->andReturn('APP_NAME=Laravel');
+    $siteResource->shouldReceive('updateEnvironment')->once();
+    $siteResource->shouldReceive('updateDeploymentScript')->once();
+    $siteResource->shouldNotReceive('enableQuickDeploy');
+    $siteResource->shouldReceive('deploy')->once();
+
+    $forgeClient = Mockery::mock(ForgeClient::class);
+    $forgeClient->shouldReceive('databases')->andReturn($databaseResource);
+    $forgeClient->shouldReceive('databaseUsers')->andReturn($databaseUserResource);
+    $forgeClient->shouldReceive('sites')->andReturn($siteResource);
+
+    $builder = makeEnvironmentBuilder($forgeClient);
+    $environment = $builder->create('feat/no-qd');
+
+    expect($environment)->toBeInstanceOf(EnvironmentData::class)
+        ->domain->toBe('feat-no-qd.review.example.com');
 });

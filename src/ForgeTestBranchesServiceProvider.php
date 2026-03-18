@@ -7,7 +7,7 @@ namespace Ddr\ForgeTestBranches;
 use Ddr\ForgeTestBranches\Integrations\Forge\ForgeClient;
 use Spatie\LaravelPackageTools\{Package, PackageServiceProvider};
 use Ddr\ForgeTestBranches\Commands\{CreateComposerAuthCommand, CreateEnvironmentCommand, DeployEnvironmentCommand, DestroyEnvironmentCommand, InstallCommand, ListEnvironmentsCommand, TestForgeConnectionCommand, UpdateDeployScriptCommand};
-use Ddr\ForgeTestBranches\Services\{BranchPatternMatcher, BranchSanitizer, DeploymentScriptBuilder, DomainBuilder, EnvironmentBuilder};
+use Ddr\ForgeTestBranches\Services\{BranchPatternMatcher, BranchSanitizer, DeploymentScriptBuilder, DomainBuilder, EnvironmentBuilder, RemoteBranchResolver};
 
 class ForgeTestBranchesServiceProvider extends PackageServiceProvider
 {
@@ -38,13 +38,14 @@ class ForgeTestBranchesServiceProvider extends PackageServiceProvider
         $this->app->singleton(DomainBuilder::class);
         $this->app->singleton(DeploymentScriptBuilder::class);
         $this->app->singleton(EnvironmentBuilder::class);
+        $this->app->singleton(RemoteBranchResolver::class);
         $this->app->singleton(ForgeTestBranches::class);
         $this->app->singleton(Logger::class);
     }
 
     public function packageBooted(): void
     {
-        if (config('forge-test-branches.webhook.enabled')) {
+        if (config('forge-test-branches.webhook.enabled') === true) {
             $this->loadRoutesFrom(__DIR__ . '/../routes/webhook.php');
         }
     }

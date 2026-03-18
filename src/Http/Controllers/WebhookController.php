@@ -60,7 +60,7 @@ class WebhookController extends Controller
         }
     }
 
-    protected function isPushEvent(Request $request): bool
+    private function isPushEvent(Request $request): bool
     {
         if ($this->isGitHubRequest($request)) {
             return $request->header('X-GitHub-Event') === 'delete';
@@ -69,13 +69,13 @@ class WebhookController extends Controller
         return $request->header('X-Gitlab-Event') === 'Push Hook';
     }
 
-    protected function isGitHubRequest(Request $request): bool
+    private function isGitHubRequest(Request $request): bool
     {
         return $request->hasHeader('X-GitHub-Event');
     }
 
     /** @param array<string, mixed> $payload */
-    protected function isBranchDeleted(Request $request, array $payload): bool
+    private function isBranchDeleted(Request $request, array $payload): bool
     {
         if ($this->isGitHubRequest($request)) {
             return ($payload['ref_type'] ?? '') === 'branch';
@@ -85,7 +85,7 @@ class WebhookController extends Controller
     }
 
     /** @param array<string, mixed> $payload */
-    protected function extractBranch(array $payload): string
+    private function extractBranch(array $payload): string
     {
         $ref = $payload['ref'] ?? '';
 

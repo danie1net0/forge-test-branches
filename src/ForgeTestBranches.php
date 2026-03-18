@@ -11,7 +11,7 @@ use RuntimeException;
 class ForgeTestBranches
 {
     public function __construct(
-        protected EnvironmentBuilder $builder
+        private readonly EnvironmentBuilder $builder
     ) {
     }
 

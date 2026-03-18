@@ -8,8 +8,8 @@ class DomainBuilder
 {
     public function build(string $branchSlug): string
     {
-        $pattern = config('forge-test-branches.domain.pattern');
-        $base = config('forge-test-branches.domain.base');
+        $pattern = (string) config('forge-test-branches.domain.pattern');
+        $base = (string) config('forge-test-branches.domain.base');
 
         return str_replace(
             ['{branch}', '{base}'],
