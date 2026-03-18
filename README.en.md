@@ -2,7 +2,6 @@
 
 [![Latest Version on Packagist](https://img.shields.io/packagist/v/ddr/forge-test-branches.svg?style=flat-square)](https://packagist.org/packages/ddr/forge-test-branches)
 [![GitHub Tests Action Status](https://img.shields.io/github/actions/workflow/status/danie1net0/forge-test-branches/run-tests.yml?branch=main&label=tests&style=flat-square)](https://github.com/ddr/forge-test-branches/actions?query=workflow%3Arun-tests+branch%3Amain)
-[![GitHub Code Style Action Status](https://img.shields.io/github/actions/workflow/status/danie1net0/forge-test-branches/fix-php-code-style-issues.yml?branch=main&label=code%20style&style=flat-square)](https://github.com/ddr/forge-test-branches/actions?query=workflow%3A"Fix+PHP+code+style+issues"+branch%3Amain)
 [![Total Downloads](https://img.shields.io/packagist/dt/ddr/forge-test-branches.svg?style=flat-square)](https://packagist.org/packages/ddr/forge-test-branches)
 
 **Languages:** English | [Español](README.es.md) | [Português](README.pt-BR.md)
@@ -197,16 +196,16 @@ return [
 
     'domain' => [
         'base' => env('FORGE_REVIEW_DOMAIN'),
-        'pattern' => '{branch}.{base}', // feat-hu-123.review.mysite.com
+        'pattern' => '{branch}.{base}',
     ],
 
     'git' => [
-        'provider' => env('FORGE_GIT_PROVIDER', 'gitlab'), // gitlab, github, bitbucket
+        'provider' => env('FORGE_GIT_PROVIDER', 'gitlab'),
         'repository' => env('FORGE_GIT_REPOSITORY'),
     ],
 
     'branch' => [
-        'patterns' => ['*'], // ['feat/*', 'review/*', 'fix/*']
+        'patterns' => ['*'], // or ['feat/*', 'fix/*']
     ],
 
     'database' => [

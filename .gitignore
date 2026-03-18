@@ -33,3 +33,8 @@ testbench.yaml
 /coverage
 .env
 /storage
+.claude
+.ai
+.claude/.preset
+.claude/.use-filament
+.claude/.use-livewire
