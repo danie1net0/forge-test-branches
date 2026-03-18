@@ -67,6 +67,35 @@ class EnvironmentBuilder
         );
     }
 
+    /** @return array<EnvironmentData> */
+    public function listAll(): array
+    {
+        $serverId = (int) config('forge-test-branches.server_id');
+        $sites = $this->forge->sites()->list($serverId);
+
+        $environments = [];
+
+        foreach ($sites as $site) {
+            $slug = $this->domainBuilder->extractSlugFromDomain($site->name);
+
+            if ($slug === null) {
+                continue;
+            }
+
+            $environments[] = new EnvironmentData(
+                branch: $site->repositoryBranch ?? $slug,
+                slug: $slug,
+                domain: $site->name,
+                serverId: $serverId,
+                siteId: $site->id,
+            );
+        }
+
+        $this->logger->debug('Listed environments', ['count' => count($environments)]);
+
+        return $environments;
+    }
+
     public function find(string $branch): ?EnvironmentData
     {
         $slug = $this->sanitizer->sanitize($branch);

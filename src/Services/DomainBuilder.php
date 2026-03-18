@@ -17,4 +17,22 @@ class DomainBuilder
             $pattern
         );
     }
+
+    public function extractSlugFromDomain(string $domain): ?string
+    {
+        $pattern = (string) config('forge-test-branches.domain.pattern');
+        $base = (string) config('forge-test-branches.domain.base');
+
+        $regex = '/^' . str_replace(
+            ['\{branch\}', '\{base\}'],
+            ['(?P<branch>.+)', preg_quote($base, '/')],
+            preg_quote($pattern, '/')
+        ) . '$/';
+
+        if (! preg_match($regex, $domain, $matches)) {
+            return null;
+        }
+
+        return $matches['branch'];
+    }
 }

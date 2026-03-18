@@ -42,6 +42,12 @@ class ForgeTestBranches
         $this->builder->deploy($environment);
     }
 
+    /** @return array<EnvironmentData> */
+    public function listAll(): array
+    {
+        return $this->builder->listAll();
+    }
+
     public function find(string $branch): ?EnvironmentData
     {
         return $this->builder->find($branch);

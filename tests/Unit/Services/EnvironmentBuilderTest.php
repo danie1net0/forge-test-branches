@@ -438,3 +438,63 @@ test('processes {slug} and {env:VAR} placeholders in environment variables', fun
 
     putenv('BASE_APP_KEY');
 });
+
+test('lista todos os ambientes de review do servidor', function (): void {
+    $siteResource = Mockery::mock(SiteResource::class);
+    $siteResource->shouldReceive('list')
+        ->once()
+        ->with(12345)
+        ->andReturn([
+            makeSiteData(100, 'feat-login.review.example.com'),
+            makeSiteData(200, 'fix-bug.review.example.com'),
+            makeSiteData(300, 'production.other-domain.com'),
+        ]);
+
+    $forgeClient = Mockery::mock(ForgeClient::class);
+    $forgeClient->shouldReceive('sites')->andReturn($siteResource);
+
+    $builder = makeEnvironmentBuilder($forgeClient);
+    $environments = $builder->listAll();
+
+    expect($environments)->toHaveCount(2)
+        ->and($environments[0])->toBeInstanceOf(EnvironmentData::class)
+        ->siteId->toBe(100)
+        ->domain->toBe('feat-login.review.example.com')
+        ->and($environments[1])->toBeInstanceOf(EnvironmentData::class)
+        ->siteId->toBe(200)
+        ->domain->toBe('fix-bug.review.example.com');
+});
+
+test('retorna array vazio quando não há ambientes de review', function (): void {
+    $siteResource = Mockery::mock(SiteResource::class);
+    $siteResource->shouldReceive('list')
+        ->once()
+        ->with(12345)
+        ->andReturn([
+            makeSiteData(100, 'production.other-domain.com'),
+        ]);
+
+    $forgeClient = Mockery::mock(ForgeClient::class);
+    $forgeClient->shouldReceive('sites')->andReturn($siteResource);
+
+    $builder = makeEnvironmentBuilder($forgeClient);
+
+    expect($builder->listAll())->toBeEmpty();
+});
+
+test('usa repositoryBranch do site como branch do ambiente', function (): void {
+    $site = makeSiteData(100, 'feat-login.review.example.com');
+
+    $siteResource = Mockery::mock(SiteResource::class);
+    $siteResource->shouldReceive('list')
+        ->once()
+        ->andReturn([$site]);
+
+    $forgeClient = Mockery::mock(ForgeClient::class);
+    $forgeClient->shouldReceive('sites')->andReturn($siteResource);
+
+    $builder = makeEnvironmentBuilder($forgeClient);
+    $environments = $builder->listAll();
+
+    expect($environments[0]->branch)->toBe('main');
+});
