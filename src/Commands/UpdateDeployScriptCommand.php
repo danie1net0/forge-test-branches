@@ -23,7 +23,7 @@ class UpdateDeployScriptCommand extends Command
     ): int {
         $branch = $this->option('branch') ?? getenv('CI_COMMIT_REF_NAME') ?: null;
 
-        if (! $branch) {
+        if (! is_string($branch)) {
             $this->error('Branch not specified. Use --branch=branch-name or set CI_COMMIT_REF_NAME');
 
             return self::FAILURE;
