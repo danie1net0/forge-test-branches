@@ -36,17 +36,21 @@ class ListEnvironmentsCommand extends Command
         }
 
         $shouldFilterOrphans = $this->option('orphans') || $this->option('destroy-orphans');
-        $remoteBranches = $shouldFilterOrphans ? $remoteBranchResolver->resolve() : null;
+        $remoteBranches = $remoteBranchResolver->resolve();
 
-        if ($shouldFilterOrphans && $remoteBranches === null) {
-            $this->error('Could not fetch remote branches. Check your git credentials and repository configuration.');
-
-            return self::FAILURE;
+        if ($remoteBranches === null) {
+            $this->warn('Could not fetch remote branches. Showing all environments without status.');
         }
 
         $rows = $this->buildTableRows($environments, $remoteBranches);
 
         if ($shouldFilterOrphans) {
+            if ($remoteBranches === null) {
+                $this->error('Cannot filter orphans without remote branch data.');
+
+                return self::FAILURE;
+            }
+
             $rows = array_filter($rows, fn (array $row): bool => $row[2] === 'Orphan');
         }
 

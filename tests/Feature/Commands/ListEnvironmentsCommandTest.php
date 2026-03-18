@@ -34,7 +34,7 @@ test('exibe mensagem quando não há ambientes', function (): void {
         ->assertExitCode(0);
 });
 
-test('lista todos os ambientes de review', function (): void {
+test('lista todos os ambientes com status real', function (): void {
     $builder = Mockery::mock(EnvironmentBuilder::class);
     $builder->shouldReceive('listAll')
         ->once()
@@ -45,12 +45,46 @@ test('lista todos os ambientes de review', function (): void {
 
     $this->app->instance(EnvironmentBuilder::class, $builder);
 
+    Process::fake([
+        'git ls-remote --heads *' => Process::result(
+            output: "abc123\trefs/heads/feat/login\nabc456\trefs/heads/fix/bug-123\n"
+        ),
+    ]);
+
     $this->artisan('forge-test-branches:list')
         ->expectsTable(
             ['Branch', 'Domain', 'Status', 'Site ID'],
             [
                 ['feat/login', 'feat-login.review.example.com', 'Active', 100],
                 ['fix/bug-123', 'fix-bug-123.review.example.com', 'Active', 200],
+            ]
+        )
+        ->assertExitCode(0);
+});
+
+test('mostra ambientes órfãos e ativos na listagem padrão', function (): void {
+    $builder = Mockery::mock(EnvironmentBuilder::class);
+    $builder->shouldReceive('listAll')
+        ->once()
+        ->andReturn([
+            makeListEnvData('feat/login', 'feat-login', 100),
+            makeListEnvData('feat/removed', 'feat-removed', 200),
+        ]);
+
+    $this->app->instance(EnvironmentBuilder::class, $builder);
+
+    Process::fake([
+        'git ls-remote --heads *' => Process::result(
+            output: "abc123\trefs/heads/feat/login\n"
+        ),
+    ]);
+
+    $this->artisan('forge-test-branches:list')
+        ->expectsTable(
+            ['Branch', 'Domain', 'Status', 'Site ID'],
+            [
+                ['feat/login', 'feat-login.review.example.com', 'Active', 100],
+                ['feat/removed', 'feat-removed.review.example.com', 'Orphan', 200],
             ]
         )
         ->assertExitCode(0);
@@ -180,7 +214,7 @@ test('cancela destruição de órfãos quando não confirma', function (): void 
         ->assertExitCode(0);
 });
 
-test('exibe erro quando falha ao obter branches remotas', function (): void {
+test('exibe warning e lista sem status quando remote falha', function (): void {
     $builder = Mockery::mock(EnvironmentBuilder::class);
     $builder->shouldReceive('listAll')
         ->once()
@@ -191,13 +225,36 @@ test('exibe erro quando falha ao obter branches remotas', function (): void {
     $this->app->instance(EnvironmentBuilder::class, $builder);
 
     Process::fake([
-        'git ls-remote --heads *' => Process::result(
-            exitCode: 128
-        ),
+        'git ls-remote --heads *' => Process::result(exitCode: 128),
+    ]);
+
+    $this->artisan('forge-test-branches:list')
+        ->expectsOutput('Could not fetch remote branches. Showing all environments without status.')
+        ->expectsTable(
+            ['Branch', 'Domain', 'Status', 'Site ID'],
+            [
+                ['feat/login', 'feat-login.review.example.com', 'Active', 100],
+            ]
+        )
+        ->assertExitCode(0);
+});
+
+test('exibe erro quando filtra órfãos sem acesso ao remote', function (): void {
+    $builder = Mockery::mock(EnvironmentBuilder::class);
+    $builder->shouldReceive('listAll')
+        ->once()
+        ->andReturn([
+            makeListEnvData('feat/login', 'feat-login', 100),
+        ]);
+
+    $this->app->instance(EnvironmentBuilder::class, $builder);
+
+    Process::fake([
+        'git ls-remote --heads *' => Process::result(exitCode: 128),
     ]);
 
     $this->artisan('forge-test-branches:list', ['--orphans' => true])
-        ->expectsOutput('Could not fetch remote branches. Check your git credentials and repository configuration.')
+        ->expectsOutput('Cannot filter orphans without remote branch data.')
         ->assertExitCode(1);
 });
 
