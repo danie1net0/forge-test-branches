@@ -6,6 +6,7 @@ namespace Ddr\ForgeTestBranches\Services;
 
 use Ddr\ForgeTestBranches\Data\{CreateDatabaseData, CreateDatabaseUserData, CreateSiteData, DatabaseData, DatabaseUserData, EnvironmentData, InstallGitRepositoryData, SiteData};
 use Ddr\ForgeTestBranches\Integrations\Forge\ForgeClient;
+use Ddr\ForgeTestBranches\Logger;
 use Illuminate\Support\Str;
 
 class EnvironmentBuilder
@@ -15,6 +16,7 @@ class EnvironmentBuilder
         protected BranchSanitizer $sanitizer,
         protected DomainBuilder $domainBuilder,
         protected DeploymentScriptBuilder $scriptBuilder,
+        protected Logger $logger,
     ) {
     }
 
@@ -24,16 +26,27 @@ class EnvironmentBuilder
         $domain = $this->domainBuilder->build($slug);
         $serverId = (int) config('forge-test-branches.server_id');
 
+        $this->logger->info('Creating environment', ['branch' => $branch, 'domain' => $domain, 'server_id' => $serverId]);
+
         $database = $this->createDatabase($serverId, $slug);
+        $this->logger->debug('Database created', ['database' => $database->name]);
+
         [$databaseUser, $databasePassword] = $this->createDatabaseUser($serverId, $slug, $database);
+        $this->logger->debug('Database user created', ['user' => $databaseUser->name]);
+
         $site = $this->createSite($serverId, $domain);
+        $this->logger->debug('Site created', ['site_id' => $site->id, 'domain' => $domain]);
+
         $this->installGitRepository($serverId, $site->id, $branch);
         $this->forge->sites()->waitForRepositoryInstallation($serverId, $site->id);
+        $this->logger->debug('Git repository installed', ['branch' => $branch]);
+
         $this->updateEnvironment($serverId, $site->id, $database->name, $databaseUser->name, $databasePassword, $slug);
         $this->updateDeploymentScript($serverId, $site->id, $branch);
 
         if (config('forge-test-branches.ssl.enabled')) {
             $this->obtainSslCertificate($serverId, $site->id, $domain);
+            $this->logger->debug('SSL certificate obtained', ['domain' => $domain]);
         }
 
         if (config('forge-test-branches.deploy.quick_deploy')) {
@@ -41,6 +54,7 @@ class EnvironmentBuilder
         }
 
         $this->forge->sites()->deploy($serverId, $site->id);
+        $this->logger->info('Environment created', ['branch' => $branch, 'domain' => $domain, 'site_id' => $site->id]);
 
         return new EnvironmentData(
             branch: $branch,
@@ -87,6 +101,8 @@ class EnvironmentBuilder
 
     public function destroy(EnvironmentData $environment): void
     {
+        $this->logger->info('Destroying environment', ['branch' => $environment->branch, 'domain' => $environment->domain, 'site_id' => $environment->siteId]);
+
         $this->forge->sites()->delete($environment->serverId, $environment->siteId);
 
         if ($environment->databaseUserId) {
@@ -96,11 +112,17 @@ class EnvironmentBuilder
         if ($environment->databaseId) {
             $this->forge->databases()->delete($environment->serverId, $environment->databaseId);
         }
+
+        $this->logger->info('Environment destroyed', ['branch' => $environment->branch, 'domain' => $environment->domain]);
     }
 
     public function deploy(EnvironmentData $environment): void
     {
+        $this->logger->info('Deploy started', ['branch' => $environment->branch, 'domain' => $environment->domain, 'site_id' => $environment->siteId]);
+
         $this->forge->sites()->deploy($environment->serverId, $environment->siteId);
+
+        $this->logger->info('Deploy triggered', ['branch' => $environment->branch, 'domain' => $environment->domain]);
     }
 
     protected function buildDatabaseName(string $slug): string

@@ -5,6 +5,7 @@ declare(strict_types=1);
 use Ddr\ForgeTestBranches\Data\{CreateDatabaseData, CreateDatabaseUserData, DatabaseData, DatabaseUserData, EnvironmentData, SiteData};
 use Ddr\ForgeTestBranches\Integrations\Forge\ForgeClient;
 use Ddr\ForgeTestBranches\Integrations\Forge\Resources\{DatabaseResource, DatabaseUserResource, SiteResource};
+use Ddr\ForgeTestBranches\Logger;
 use Ddr\ForgeTestBranches\Services\{BranchSanitizer, DeploymentScriptBuilder, DomainBuilder, EnvironmentBuilder};
 
 beforeEach(function (): void {
@@ -71,6 +72,7 @@ function makeEnvironmentBuilder(ForgeClient $forgeClient): EnvironmentBuilder
         new BranchSanitizer(),
         new DomainBuilder(),
         new DeploymentScriptBuilder(),
+        Mockery::mock(Logger::class)->shouldIgnoreMissing(),
     );
 }
 

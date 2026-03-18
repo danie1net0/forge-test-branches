@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Ddr\ForgeTestBranches\Http\Controllers;
 
 use Ddr\ForgeTestBranches\Data\EnvironmentData;
+use Ddr\ForgeTestBranches\Logger;
 use Ddr\ForgeTestBranches\Services\EnvironmentBuilder;
 use Illuminate\Http\{JsonResponse, Request};
 use Illuminate\Routing\Controller;
@@ -12,7 +13,7 @@ use Throwable;
 
 class WebhookController extends Controller
 {
-    public function handle(Request $request, EnvironmentBuilder $builder): JsonResponse
+    public function handle(Request $request, EnvironmentBuilder $builder, Logger $logger): JsonResponse
     {
         if (! $this->isPushEvent($request)) {
             return response()->json(['message' => 'Event ignored']);
@@ -25,17 +26,25 @@ class WebhookController extends Controller
         }
 
         $branch = $this->extractBranch($payload);
+        $provider = $this->isGitHubRequest($request) ? 'github' : 'gitlab';
+        $logger->info('Webhook received: branch deletion', ['branch' => $branch, 'provider' => $provider]);
+
         $environment = $builder->find($branch);
 
         if (! $environment instanceof EnvironmentData) {
+            $logger->warning('Webhook: environment not found', ['branch' => $branch]);
+
             return response()->json(['message' => 'Environment not found']);
         }
 
         try {
             $builder->destroy($environment);
+            $logger->info('Webhook: environment destroyed', ['branch' => $branch, 'domain' => $environment->domain]);
 
             return response()->json(['message' => 'Environment destroyed successfully']);
         } catch (Throwable $throwable) {
+            $logger->error('Webhook: error destroying environment', ['branch' => $branch, 'error' => $throwable->getMessage()]);
+
             return response()->json(['message' => 'Error destroying environment', 'error' => $throwable->getMessage()], 500);
         }
     }

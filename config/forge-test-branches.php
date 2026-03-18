@@ -256,4 +256,29 @@ return [
     */
 
     'env_variables' => [],
+
+    /*
+    |--------------------------------------------------------------------------
+    | Logging Configuration
+    |--------------------------------------------------------------------------
+    |
+    | Logging configuration for the package.
+    |
+    | - enabled: Whether logging is enabled (default: true)
+    | - channel: Log channel name (default: forge-test-branches)
+    | - driver: Log driver (default: daily)
+    | - path: Log file path (default: storage/logs/forge-test-branches.log)
+    | - days: Number of days to retain log files (default: 14)
+    | - level: Minimum log level (default: debug)
+    |
+    */
+
+    'logging' => [
+        'enabled' => env('FORGE_LOG_ENABLED', true),
+        'channel' => 'forge-test-branches',
+        'driver' => 'daily',
+        'path' => storage_path('logs/forge-test-branches.log'),
+        'days' => 14,
+        'level' => env('FORGE_LOG_LEVEL', 'debug'),
+    ],
 ];
