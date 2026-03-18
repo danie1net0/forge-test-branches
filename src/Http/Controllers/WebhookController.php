@@ -15,19 +15,30 @@ class WebhookController extends Controller
 {
     public function handle(Request $request, EnvironmentBuilder $builder, Logger $logger): JsonResponse
     {
+        $eventHeader = $request->header('X-Gitlab-Event') ?? $request->header('X-GitHub-Event') ?? 'unknown';
+        $logger->info('Webhook received', [
+            'event' => $eventHeader,
+            'ref' => $request->input('ref'),
+            'after' => $request->input('after'),
+        ]);
+
         if (! $this->isPushEvent($request)) {
+            $logger->debug('Webhook ignored: not a push/delete event', ['event' => $eventHeader]);
+
             return response()->json(['message' => 'Event ignored']);
         }
 
         $payload = $request->all();
 
         if (! $this->isBranchDeleted($request, $payload)) {
+            $logger->debug('Webhook ignored: not a branch deletion', ['ref' => $payload['ref'] ?? '', 'after' => $payload['after'] ?? '']);
+
             return response()->json(['message' => 'Not a branch deletion']);
         }
 
         $branch = $this->extractBranch($payload);
         $provider = $this->isGitHubRequest($request) ? 'github' : 'gitlab';
-        $logger->info('Webhook received: branch deletion', ['branch' => $branch, 'provider' => $provider]);
+        $logger->info('Branch deletion detected', ['branch' => $branch, 'provider' => $provider]);
 
         $environment = $builder->find($branch);
 
