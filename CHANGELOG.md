@@ -1,3 +1,10 @@
+# [1.9.0](https://github.com/danie1net0/forge-test-branches/compare/v1.8.1...v1.9.0) (2026-03-18)
+
+
+### Features
+
+* **commands:** exibe status real dos ambientes na listagem padrão ([2692339](https://github.com/danie1net0/forge-test-branches/commit/26923391b395f13de38cc608123a24f3e99698b7))
+
 ## [1.8.1](https://github.com/danie1net0/forge-test-branches/compare/v1.8.0...v1.8.1) (2026-03-18)
 
 
