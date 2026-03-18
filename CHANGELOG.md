@@ -1,3 +1,11 @@
+# [1.7.0](https://github.com/danie1net0/forge-test-branches/compare/v1.6.0...v1.7.0) (2026-03-18)
+
+
+### Features
+
+* **logging:** adiciona canal de log dedicado para eventos do pacote ([8dafaab](https://github.com/danie1net0/forge-test-branches/commit/8dafaab013611cae619304066e8ee766ba1afefc))
+* **logging:** adiciona logs de diagnóstico em todo o fluxo do webhook ([8d4b688](https://github.com/danie1net0/forge-test-branches/commit/8d4b68861b0c3284b5e69afa78b403226efb3bcc))
+
 # [1.6.0](https://github.com/danie1net0/forge-test-branches/compare/v1.5.0...v1.6.0) (2026-01-07)
 
 
