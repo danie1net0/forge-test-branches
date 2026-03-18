@@ -1,3 +1,10 @@
+# [1.8.0](https://github.com/danie1net0/forge-test-branches/compare/v1.7.0...v1.8.0) (2026-03-18)
+
+
+### Features
+
+* **commands:** adiciona comando para listar ambientes de review ([7bd31d6](https://github.com/danie1net0/forge-test-branches/commit/7bd31d69bd42fe0b17b6687266c331a28b49661a))
+
 # [1.7.0](https://github.com/danie1net0/forge-test-branches/compare/v1.6.0...v1.7.0) (2026-03-18)
 
 
