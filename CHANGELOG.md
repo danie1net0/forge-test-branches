@@ -1,3 +1,10 @@
+## [1.8.1](https://github.com/danie1net0/forge-test-branches/compare/v1.8.0...v1.8.1) (2026-03-18)
+
+
+### Bug Fixes
+
+* **ci:** corrige falhas de PHPStan e workflow de testes ([72a676d](https://github.com/danie1net0/forge-test-branches/commit/72a676dd4bbbbcc8d78cc9fa31222ffe46692157))
+
 # [1.8.0](https://github.com/danie1net0/forge-test-branches/compare/v1.7.0...v1.8.0) (2026-03-18)
 
 
