@@ -38,3 +38,6 @@ testbench.yaml
 .claude/.preset
 .claude/.use-filament
 .claude/.use-livewire
+
+coverage**
+--cache-result/
