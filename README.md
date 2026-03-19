@@ -254,6 +254,12 @@ php artisan forge-test-branches:deploy --branch=feat/new-feature
 # Destroy environment
 php artisan forge-test-branches:destroy --branch=feat/new-feature
 
+# Update deploy script for an existing environment
+php artisan forge-test-branches:update-script --branch=feat/new-feature
+
+# Test Forge API connection
+php artisan forge-test-branches:test-connection
+
 # List all environments (shows Active/Orphan status)
 php artisan forge-test-branches:list
 

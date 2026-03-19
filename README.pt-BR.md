@@ -253,6 +253,12 @@ php artisan forge-test-branches:deploy --branch=feat/nova-feature
 # Destruir ambiente
 php artisan forge-test-branches:destroy --branch=feat/nova-feature
 
+# Atualizar script de deploy de um ambiente existente
+php artisan forge-test-branches:update-script --branch=feat/nova-feature
+
+# Testar conexão com a API do Forge
+php artisan forge-test-branches:test-connection
+
 # Listar ambientes (mostra status Active/Orphan)
 php artisan forge-test-branches:list
 
