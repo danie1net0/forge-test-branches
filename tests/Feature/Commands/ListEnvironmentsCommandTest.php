@@ -322,3 +322,41 @@ test('exibe warning quando ambiente órfão não é encontrado no find', functio
         ->expectsOutput('  Environment not found: feat/removed')
         ->assertExitCode(0);
 });
+
+test('destrói órfãos sem confirmação com flag --force', function (): void {
+    $fullEnvironment = new EnvironmentData(
+        branch: 'feat/removed',
+        slug: 'feat-removed',
+        domain: 'feat-removed.review.example.com',
+        serverId: 123,
+        siteId: 200,
+        databaseId: 10,
+        databaseUserId: 20,
+    );
+
+    $builder = Mockery::mock(EnvironmentBuilder::class);
+    $builder->shouldReceive('listAll')
+        ->once()
+        ->andReturn([
+            makeListEnvData('feat/removed', 'feat-removed', 200),
+        ]);
+    $builder->shouldReceive('find')
+        ->once()
+        ->with('feat/removed')
+        ->andReturn($fullEnvironment);
+    $builder->shouldReceive('destroy')
+        ->once()
+        ->with($fullEnvironment);
+
+    $this->app->instance(EnvironmentBuilder::class, $builder);
+
+    Process::fake([
+        'git ls-remote --heads *' => Process::result(
+            output: "abc123\trefs/heads/main\n"
+        ),
+    ]);
+
+    $this->artisan('forge-test-branches:list', ['--destroy-orphans' => true, '--force' => true])
+        ->expectsOutput('All orphaned environments destroyed.')
+        ->assertExitCode(0);
+});

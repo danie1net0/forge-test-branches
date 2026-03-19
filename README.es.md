@@ -165,15 +165,9 @@ php artisan forge-test-branches:install
 
 Este comando:
 
-- Publica configuración y migrations
+- Publica configuración
 - Configura variables de entorno
 - Opcionalmente añade job a GitLab CI
-
-Luego ejecuta:
-
-```bash
-php artisan migrate
-```
 
 ## Configuración
 
@@ -252,6 +246,21 @@ php artisan forge-test-branches:deploy --branch=feat/nueva-caracteristica
 
 # Destruir entorno
 php artisan forge-test-branches:destroy --branch=feat/nueva-caracteristica
+
+# Actualizar script de deploy de un entorno existente
+php artisan forge-test-branches:update-script --branch=feat/nueva-caracteristica
+
+# Probar conexión con la API de Forge
+php artisan forge-test-branches:test-connection
+
+# Listar todos los entornos (muestra estado Active/Orphan)
+php artisan forge-test-branches:list
+
+# Listar solo entornos huérfanos
+php artisan forge-test-branches:list --orphans
+
+# Destruir todos los entornos huérfanos (con confirmación)
+php artisan forge-test-branches:list --destroy-orphans
 ```
 
 En CI/CD, la variable `CI_COMMIT_REF_NAME` se detecta automáticamente:
@@ -282,21 +291,9 @@ ForgeTestBranches::deploy('feat/nueva-caracteristica');
 
 // Destruir
 ForgeTestBranches::destroy('feat/nueva-caracteristica');
-```
 
-### Model
-
-```php
-use Ddr\ForgeTestBranches\Models\ReviewEnvironment;
-
-$environments = ReviewEnvironment::all();
-$env = ReviewEnvironment::where('branch', 'feat/nueva-caracteristica')->first();
-
-$env->branch;        // feat/nueva-caracteristica
-$env->slug;          // feat-nueva-caracteristica
-$env->domain;        // feat-nueva-caracteristica.review.mysite.com
-$env->site_id;       // ID del sitio en Forge
-$env->database_id;   // ID de la base de datos en Forge
+// Listar todos los entornos
+$environments = ForgeTestBranches::listAll();
 ```
 
 ## Integración CI/CD
@@ -317,11 +314,28 @@ review_app:
         - curl -sS https://getcomposer.org/installer | php -- --install-dir=/usr/local/bin --filename=composer
         - composer install --no-interaction --prefer-dist
     script:
-        - php artisan forge-test-branches:create
-        - php artisan forge-test-branches:deploy
+        - php artisan forge-test-branches:create --branch=$CI_COMMIT_REF_NAME
+        - php artisan forge-test-branches:deploy --branch=$CI_COMMIT_REF_NAME
     environment:
         name: review/$CI_COMMIT_REF_SLUG
         url: https://$CI_COMMIT_REF_SLUG.review.mysite.com
+        on_stop: stop_review
+    rules:
+        - if: $CI_MERGE_REQUEST_ID
+          when: manual
+
+stop_review:
+    stage: review
+    image: php:8.4-cli
+    before_script:
+        - apt-get update && apt-get install -y git unzip
+        - curl -sS https://getcomposer.org/installer | php -- --install-dir=/usr/local/bin --filename=composer
+        - composer install --no-interaction --prefer-dist
+    script:
+        - php artisan forge-test-branches:destroy --branch=$CI_COMMIT_REF_NAME
+    environment:
+        name: review/$CI_COMMIT_REF_SLUG
+        action: stop
     rules:
         - if: $CI_MERGE_REQUEST_ID
           when: manual

@@ -17,6 +17,10 @@ fi
 echo "Formatting code..."
 run_composer_script format
 
-git add $STAGED_FILES
+for file in $STAGED_FILES; do
+    if [ -e "$file" ] || git ls-files --deleted --error-unmatch "$file" > /dev/null 2>&1; then
+        git add "$file" 2>/dev/null || true
+    fi
+done
 
 echo "Code formatted successfully!"

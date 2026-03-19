@@ -166,15 +166,9 @@ php artisan forge-test-branches:install
 
 This command:
 
-- Publishes configuration and migrations
+- Publishes configuration
 - Configures environment variables
 - Optionally adds job to GitLab CI
-
-Then run:
-
-```bash
-php artisan migrate
-```
 
 ## Configuration
 
@@ -303,21 +297,6 @@ ForgeTestBranches::destroy('feat/new-feature');
 $environments = ForgeTestBranches::listAll();
 ```
 
-### Model
-
-```php
-use Ddr\ForgeTestBranches\Models\ReviewEnvironment;
-
-$environments = ReviewEnvironment::all();
-$env = ReviewEnvironment::where('branch', 'feat/new-feature')->first();
-
-$env->branch;        // feat/new-feature
-$env->slug;          // feat-new-feature
-$env->domain;        // feat-new-feature.review.mysite.com
-$env->site_id;       // Forge site ID
-$env->database_id;   // Forge database ID
-```
-
 ## CI/CD Integration
 
 ### GitLab
@@ -336,15 +315,34 @@ review_app:
         - curl -sS https://getcomposer.org/installer | php -- --install-dir=/usr/local/bin --filename=composer
         - composer install --no-interaction --prefer-dist
     script:
-        - php artisan forge-test-branches:create
-        - php artisan forge-test-branches:deploy
+        - php artisan forge-test-branches:create --branch=$CI_COMMIT_REF_NAME
+        - php artisan forge-test-branches:deploy --branch=$CI_COMMIT_REF_NAME
     environment:
         name: review/$CI_COMMIT_REF_SLUG
         url: https://$CI_COMMIT_REF_SLUG.review.mysite.com
+        on_stop: stop_review
+    rules:
+        - if: $CI_MERGE_REQUEST_ID
+          when: manual
+
+stop_review:
+    stage: review
+    image: php:8.4-cli
+    before_script:
+        - apt-get update && apt-get install -y git unzip
+        - curl -sS https://getcomposer.org/installer | php -- --install-dir=/usr/local/bin --filename=composer
+        - composer install --no-interaction --prefer-dist
+    script:
+        - php artisan forge-test-branches:destroy --branch=$CI_COMMIT_REF_NAME
+    environment:
+        name: review/$CI_COMMIT_REF_SLUG
+        action: stop
     rules:
         - if: $CI_MERGE_REQUEST_ID
           when: manual
 ```
+
+The `on_stop: stop_review` ensures GitLab automatically destroys the environment when the merge request is merged.
 
 ### Webhook for Automatic Cleanup
 
@@ -478,7 +476,7 @@ You can also schedule orphan cleanup in your `routes/console.php`:
 use Illuminate\Support\Facades\Artisan;
 use Illuminate\Support\Facades\Schedule;
 
-Schedule::command('forge-test-branches:list --destroy-orphans --no-interaction')
+Schedule::command('forge-test-branches:list --destroy-orphans --force')
     ->weekly();
 ```
 

@@ -165,15 +165,9 @@ php artisan forge-test-branches:install
 
 Este comando:
 
-- Publica configuração e migrations
+- Publica configuração
 - Configura variáveis de ambiente
 - Opcionalmente adiciona job ao GitLab CI
-
-Depois execute:
-
-```bash
-php artisan migrate
-```
 
 ## Configuração
 
@@ -302,21 +296,6 @@ ForgeTestBranches::destroy('feat/nova-feature');
 $environments = ForgeTestBranches::listAll();
 ```
 
-### Model
-
-```php
-use Ddr\ForgeTestBranches\Models\ReviewEnvironment;
-
-$environments = ReviewEnvironment::all();
-$env = ReviewEnvironment::where('branch', 'feat/nova-feature')->first();
-
-$env->branch;        // feat/nova-feature
-$env->slug;          // feat-nova-feature
-$env->domain;        // feat-nova-feature.review.mysite.com
-$env->site_id;       // ID no Forge
-$env->database_id;   // ID do banco no Forge
-```
-
 ## Integração CI/CD
 
 ### GitLab
@@ -335,15 +314,34 @@ review_app:
         - curl -sS https://getcomposer.org/installer | php -- --install-dir=/usr/local/bin --filename=composer
         - composer install --no-interaction --prefer-dist
     script:
-        - php artisan forge-test-branches:create
-        - php artisan forge-test-branches:deploy
+        - php artisan forge-test-branches:create --branch=$CI_COMMIT_REF_NAME
+        - php artisan forge-test-branches:deploy --branch=$CI_COMMIT_REF_NAME
     environment:
         name: review/$CI_COMMIT_REF_SLUG
         url: https://$CI_COMMIT_REF_SLUG.review.mysite.com
+        on_stop: stop_review
+    rules:
+        - if: $CI_MERGE_REQUEST_ID
+          when: manual
+
+stop_review:
+    stage: review
+    image: php:8.4-cli
+    before_script:
+        - apt-get update && apt-get install -y git unzip
+        - curl -sS https://getcomposer.org/installer | php -- --install-dir=/usr/local/bin --filename=composer
+        - composer install --no-interaction --prefer-dist
+    script:
+        - php artisan forge-test-branches:destroy --branch=$CI_COMMIT_REF_NAME
+    environment:
+        name: review/$CI_COMMIT_REF_SLUG
+        action: stop
     rules:
         - if: $CI_MERGE_REQUEST_ID
           when: manual
 ```
+
+O `on_stop: stop_review` garante que o GitLab destrói o ambiente automaticamente quando o merge request é mergeado.
 
 ### Webhook para Limpeza Automática
 
@@ -476,7 +474,7 @@ Você também pode agendar a limpeza de órfãos no `routes/console.php`:
 ```php
 use Illuminate\Support\Facades\Schedule;
 
-Schedule::command('forge-test-branches:list --destroy-orphans --no-interaction')
+Schedule::command('forge-test-branches:list --destroy-orphans --force')
     ->weekly();
 ```
 

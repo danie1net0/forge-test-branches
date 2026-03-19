@@ -13,7 +13,8 @@ class ListEnvironmentsCommand extends Command
 {
     protected $signature = 'forge-test-branches:list
         {--orphans : Show only orphaned environments (branch no longer exists on remote)}
-        {--destroy-orphans : Destroy all orphaned environments}';
+        {--destroy-orphans : Destroy all orphaned environments}
+        {--force : Skip confirmation when destroying orphans}';
 
     protected $description = 'Lists review environments on the server';
 
@@ -112,7 +113,7 @@ class ListEnvironmentsCommand extends Command
 
         $branchNames = implode(', ', array_map(fn (EnvironmentData $environment): string => $environment->branch, $orphans));
 
-        if (! $this->confirm("Destroy " . count($orphans) . " orphaned environment(s)? [{$branchNames}]")) {
+        if (! $this->option('force') && ! $this->confirm("Destroy " . count($orphans) . " orphaned environment(s)? [{$branchNames}]")) {
             $this->info('Operation cancelled.');
 
             return self::SUCCESS;
