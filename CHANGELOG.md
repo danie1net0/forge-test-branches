@@ -1,3 +1,10 @@
+## [1.9.1](https://github.com/danie1net0/forge-test-branches/compare/v1.9.0...v1.9.1) (2026-03-19)
+
+
+### Bug Fixes
+
+* corrige bug do --force, hook, docs e stub do GitLab CI ([7d2e689](https://github.com/danie1net0/forge-test-branches/commit/7d2e689b285c122baee030ecc2a4b72cd62b2399))
+
 # [1.9.0](https://github.com/danie1net0/forge-test-branches/compare/v1.8.1...v1.9.0) (2026-03-18)
 
 
