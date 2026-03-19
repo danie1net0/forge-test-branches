@@ -9,14 +9,14 @@ beforeEach(function (): void {
     Prompt::fallbackWhen(true);
 });
 
-test('skips env configuration when user declines', function (): void {
+test('pula configuração de env quando usuário recusa', function (): void {
     $this->artisan('forge-test-branches:install')
         ->expectsConfirmation('Would you like to configure environment variables now?', 'no')
         ->expectsConfirmation('Would you like to add GitLab CI/CD configuration?', 'no')
         ->assertExitCode(0);
 });
 
-test('displays error when env file does not exist', function (): void {
+test('exibe erro quando arquivo env não existe', function (): void {
     $envPath = base_path('.env');
     $envBackup = null;
 
@@ -37,7 +37,7 @@ test('displays error when env file does not exist', function (): void {
     }
 });
 
-test('adds variables to env successfully', function (): void {
+test('adiciona variáveis ao env com sucesso', function (): void {
     $envPath = base_path('.env');
     $envBackup = file_exists($envPath) ? file_get_contents($envPath) : null;
     file_put_contents($envPath, "APP_NAME=Test\n");
@@ -69,7 +69,7 @@ test('adds variables to env successfully', function (): void {
     }
 });
 
-test('does not add variables when they already exist in env', function (): void {
+test('não adiciona variáveis quando já existem no env', function (): void {
     $envPath = base_path('.env');
     $envBackup = file_exists($envPath) ? file_get_contents($envPath) : null;
     $existingEnv = "APP_NAME=Test\nFORGE_API_TOKEN=existing\nFORGE_SERVER_ID=999\nFORGE_REVIEW_DOMAIN=old.com\nFORGE_GIT_PROVIDER=github\nFORGE_GIT_REPOSITORY=old/repo\nFORGE_WEBHOOK_SECRET=oldsecret\n";
@@ -97,7 +97,7 @@ test('does not add variables when they already exist in env', function (): void 
     }
 });
 
-test('generates webhook secret automatically when empty', function (): void {
+test('gera webhook secret automaticamente quando vazio', function (): void {
     $envPath = base_path('.env');
     $envBackup = file_exists($envPath) ? file_get_contents($envPath) : null;
     file_put_contents($envPath, "APP_NAME=Test\n");
@@ -123,7 +123,7 @@ test('generates webhook secret automatically when empty', function (): void {
     }
 });
 
-test('creates gitlab-ci file when it does not exist', function (): void {
+test('cria arquivo gitlab-ci quando não existe', function (): void {
     $ciPath = base_path('.gitlab-ci.yml');
     $ciBackup = file_exists($ciPath) ? file_get_contents($ciPath) : null;
 
@@ -153,7 +153,7 @@ test('creates gitlab-ci file when it does not exist', function (): void {
     }
 });
 
-test('adds configuration to existing gitlab-ci', function (): void {
+test('adiciona configuração ao gitlab-ci existente', function (): void {
     $ciPath = base_path('.gitlab-ci.yml');
     $ciBackup = file_exists($ciPath) ? file_get_contents($ciPath) : null;
     file_put_contents($ciPath, "stages:\n  - test\n\ntest_job:\n  script: echo test\n");
@@ -177,7 +177,46 @@ test('adds configuration to existing gitlab-ci', function (): void {
     }
 });
 
-test('warns when gitlab configuration already exists', function (): void {
+test('exibe erro quando stub de gitlab ci não existe', function (): void {
+    $stubPath = realpath(__DIR__ . '/../../../stubs/.gitlab-ci.review.yml');
+    $backupPath = $stubPath . '.bak';
+
+    rename($stubPath, $backupPath);
+
+    try {
+        $this->artisan('forge-test-branches:install')
+            ->expectsConfirmation('Would you like to configure environment variables now?', 'no')
+            ->expectsConfirmation('Would you like to add GitLab CI/CD configuration?', 'yes')
+            ->assertExitCode(0);
+    } finally {
+        rename($backupPath, $stubPath);
+    }
+});
+
+test('adiciona stages quando gitlab-ci existe sem seção stages', function (): void {
+    $ciPath = base_path('.gitlab-ci.yml');
+    $ciBackup = file_exists($ciPath) ? file_get_contents($ciPath) : null;
+    file_put_contents($ciPath, "test_job:\n  script: echo test\n");
+
+    try {
+        $this->artisan('forge-test-branches:install')
+            ->expectsConfirmation('Would you like to configure environment variables now?', 'no')
+            ->expectsConfirmation('Would you like to add GitLab CI/CD configuration?', 'yes')
+            ->expectsQuestion('Domain for review apps in CI', 'review.test.com')
+            ->assertExitCode(0);
+
+        $ciContent = file_get_contents($ciPath);
+        expect($ciContent)
+            ->toContain("stages:\n  - review")
+            ->toContain('test_job');
+    } finally {
+        $ciBackup !== null
+            ? file_put_contents($ciPath, $ciBackup)
+            : unlink($ciPath);
+    }
+});
+
+test('avisa quando configuração gitlab já existe', function (): void {
     $ciPath = base_path('.gitlab-ci.yml');
     $ciBackup = file_exists($ciPath) ? file_get_contents($ciPath) : null;
     file_put_contents($ciPath, "stages:\n  - review\n\nforge-test-branches:\n  stage: review\n");

@@ -2,6 +2,7 @@
 
 declare(strict_types=1);
 
+use Illuminate\Support\Sleep;
 use Ddr\ForgeTestBranches\Data\CertificateData;
 use Ddr\ForgeTestBranches\Data\{CreateDatabaseData, CreateDatabaseUserData, DatabaseData, DatabaseUserData, EnvironmentData, SiteData};
 use Ddr\ForgeTestBranches\Integrations\Forge\ForgeClient;
@@ -825,4 +826,72 @@ test('processa placeholder {env:VAR} com valor null retornando vazio', function 
     $builder->create('feat/null');
 
     expect($capturedEnv)->toContain('CUSTOM_VAR=');
+});
+
+test('waitForForgeProvisioning expira e continua normalmente', function (): void {
+    Sleep::fake();
+
+    $databaseResource = Mockery::mock(DatabaseResource::class);
+    $databaseUserResource = Mockery::mock(DatabaseUserResource::class);
+    $siteResource = Mockery::mock(SiteResource::class);
+
+    $installingSite = new SiteData(
+        id: 100,
+        serverId: 12345,
+        name: 'feat-timeout.review.example.com',
+        aliases: null,
+        directory: '/public',
+        wildcards: false,
+        status: 'installing',
+        repository: 'user/repo',
+        repositoryProvider: 'gitlab',
+        repositoryBranch: 'main',
+        repositoryStatus: 'installed',
+        quickDeploy: true,
+        deploymentStatus: 'deploying',
+        projectType: 'php',
+        app: null,
+        appStatus: null,
+        hipchatRoom: null,
+        slackChannel: null,
+        telegramChatId: null,
+        telegramChatTitle: null,
+        teamsWebhookUrl: null,
+        discordWebhookUrl: null,
+        username: 'forge',
+        balancingStatus: null,
+        createdAt: now()->toDateTimeString(),
+        deploymentUrl: null,
+        isSecured: false,
+        phpVersion: 'php84',
+        tags: null,
+        failureDeploymentEmails: null,
+        telegramSecret: null,
+        webDirectory: '/public',
+    );
+
+    $databaseResource->shouldReceive('create')->once()
+        ->andReturn(new DatabaseData(id: 1, serverId: 12345, name: 'review_feat_timeout', status: 'installed', createdAt: now()->toDateTimeString()));
+    $databaseUserResource->shouldReceive('create')->once()
+        ->andReturn(new DatabaseUserData(id: 2, serverId: 12345, name: 'review_feat_timeout', status: 'installed', createdAt: now()->toDateTimeString(), databases: [1]));
+    $siteResource->shouldReceive('create')->once()->andReturn($installingSite);
+    $siteResource->shouldReceive('installGitRepository')->once()->andReturn($installingSite);
+    $siteResource->shouldReceive('waitForRepositoryInstallation')->once()->andReturn($installingSite);
+    $siteResource->shouldReceive('get')->andReturn($installingSite);
+    $siteResource->shouldReceive('getEnvironment')->once()->andReturn('APP_NAME=Laravel');
+    $siteResource->shouldReceive('updateEnvironment')->once();
+    $siteResource->shouldReceive('updateDeploymentScript')->once();
+    $siteResource->shouldReceive('enableQuickDeploy')->once();
+    $siteResource->shouldReceive('deploy')->once();
+
+    $forgeClient = Mockery::mock(ForgeClient::class);
+    $forgeClient->shouldReceive('databases')->andReturn($databaseResource);
+    $forgeClient->shouldReceive('databaseUsers')->andReturn($databaseUserResource);
+    $forgeClient->shouldReceive('sites')->andReturn($siteResource);
+
+    $builder = makeEnvironmentBuilder($forgeClient);
+    $environment = $builder->create('feat/timeout');
+
+    expect($environment)->toBeInstanceOf(EnvironmentData::class)
+        ->domain->toBe('feat-timeout.review.example.com');
 });

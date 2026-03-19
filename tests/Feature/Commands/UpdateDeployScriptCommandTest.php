@@ -16,7 +16,7 @@ beforeEach(function (): void {
     ]);
 });
 
-test('updates deploy script of existing environment', function (): void {
+test('atualiza script de deploy do ambiente existente', function (): void {
     $siteResource = Mockery::mock(SiteResource::class);
     $databaseResource = Mockery::mock(DatabaseResource::class);
     $databaseUserResource = Mockery::mock(DatabaseUserResource::class);
@@ -82,7 +82,7 @@ test('updates deploy script of existing environment', function (): void {
         ->assertSuccessful();
 });
 
-test('fails when branch is not specified', function (): void {
+test('falha quando branch não é especificada', function (): void {
     config(['forge-test-branches.forge_api_token' => 'test-token']);
 
     $this->artisan('forge-test-branches:update-script')
@@ -90,7 +90,7 @@ test('fails when branch is not specified', function (): void {
         ->assertFailed();
 });
 
-test('fails when environment does not exist', function (): void {
+test('falha quando ambiente não existe', function (): void {
     $siteResource = Mockery::mock(SiteResource::class);
     $siteResource->shouldReceive('findByDomain')
         ->once()
@@ -103,5 +103,67 @@ test('fails when environment does not exist', function (): void {
 
     $this->artisan('forge-test-branches:update-script', ['--branch' => 'feat/nonexistent'])
         ->expectsOutput('Environment not found for branch: feat/nonexistent')
+        ->assertFailed();
+});
+
+test('exibe erro quando atualização do script falha', function (): void {
+    $siteResource = Mockery::mock(SiteResource::class);
+    $databaseResource = Mockery::mock(DatabaseResource::class);
+    $databaseUserResource = Mockery::mock(DatabaseUserResource::class);
+
+    $siteResource->shouldReceive('findByDomain')
+        ->once()
+        ->with(12345, 'feat-error.review.example.com')
+        ->andReturn(new SiteData(
+            id: 100,
+            serverId: 12345,
+            name: 'feat-error.review.example.com',
+            aliases: null,
+            directory: '/public',
+            wildcards: false,
+            status: 'installed',
+            repository: 'user/repo',
+            repositoryProvider: 'gitlab',
+            repositoryBranch: 'feat/error',
+            repositoryStatus: 'installed',
+            quickDeploy: true,
+            deploymentStatus: null,
+            projectType: 'php',
+            app: null,
+            appStatus: null,
+            hipchatRoom: null,
+            slackChannel: null,
+            telegramChatId: null,
+            telegramChatTitle: null,
+            teamsWebhookUrl: null,
+            discordWebhookUrl: null,
+            username: 'forge',
+            balancingStatus: null,
+            createdAt: now()->toDateTimeString(),
+            deploymentUrl: null,
+            isSecured: false,
+            phpVersion: 'php84',
+            tags: null,
+            failureDeploymentEmails: null,
+            telegramSecret: null,
+            webDirectory: '/public',
+        ));
+
+    $databaseResource->shouldReceive('findByName')->andReturnNull();
+    $databaseUserResource->shouldReceive('findByName')->andReturnNull();
+
+    $siteResource->shouldReceive('updateDeploymentScript')
+        ->once()
+        ->andThrow(new RuntimeException('Forge API error'));
+
+    $forgeClient = Mockery::mock(ForgeClient::class);
+    $forgeClient->shouldReceive('sites')->andReturn($siteResource);
+    $forgeClient->shouldReceive('databases')->andReturn($databaseResource);
+    $forgeClient->shouldReceive('databaseUsers')->andReturn($databaseUserResource);
+
+    app()->instance(ForgeClient::class, $forgeClient);
+
+    $this->artisan('forge-test-branches:update-script', ['--branch' => 'feat/error'])
+        ->expectsOutput('Error updating deploy script: Forge API error')
         ->assertFailed();
 });
