@@ -253,6 +253,15 @@ php artisan forge-test-branches:deploy --branch=feat/new-feature
 
 # Destroy environment
 php artisan forge-test-branches:destroy --branch=feat/new-feature
+
+# List all environments (shows Active/Orphan status)
+php artisan forge-test-branches:list
+
+# List only orphaned environments (branch no longer exists on remote)
+php artisan forge-test-branches:list --orphans
+
+# Destroy all orphaned environments (with confirmation)
+php artisan forge-test-branches:list --destroy-orphans
 ```
 
 In CI/CD, the `CI_COMMIT_REF_NAME` variable is automatically detected:
@@ -283,6 +292,9 @@ ForgeTestBranches::deploy('feat/new-feature');
 
 // Destroy
 ForgeTestBranches::destroy('feat/new-feature');
+
+// List all environments
+$environments = ForgeTestBranches::listAll();
 ```
 
 ### Model
@@ -434,6 +446,61 @@ The `{slug}` placeholder is replaced by the sanitized branch name.
 
 Only branches matching the patterns will have environments created.
 
+### Orphan cleanup
+
+Environments become orphaned when their branch is deleted without triggering the webhook (e.g., deleted via merge request). The `list` command detects these by comparing environments against remote branches via `git ls-remote`.
+
+```bash
+# See all environments with status
+php artisan forge-test-branches:list
+
+# Output:
+# +---------------------+-------------------------------------------+--------+---------+
+# | Branch              | Domain                                    | Status | Site ID |
+# +---------------------+-------------------------------------------+--------+---------+
+# | feat/active-branch  | feat-active-branch.review.mysite.com      | Active | 123456  |
+# | feat/deleted-branch | feat-deleted-branch.review.mysite.com     | Orphan | 123457  |
+# +---------------------+-------------------------------------------+--------+---------+
+
+# Destroy all orphans (asks for confirmation)
+php artisan forge-test-branches:list --destroy-orphans
+```
+
+You can also schedule orphan cleanup in your `routes/console.php`:
+
+```php
+use Illuminate\Support\Facades\Artisan;
+use Illuminate\Support\Facades\Schedule;
+
+Schedule::command('forge-test-branches:list --destroy-orphans --no-interaction')
+    ->weekly();
+```
+
+### Logging
+
+The package logs all operations to a dedicated channel. Logs are written to `storage/logs/forge-test-branches-YYYY-MM-DD.log` with daily rotation.
+
+Events logged:
+
+- Environment creation, destruction, and deployment
+- Webhook received, processed, ignored, or rejected
+- Signature validation failures
+
+Configuration in `config/forge-test-branches.php`:
+
+```php
+'logging' => [
+    'enabled' => env('FORGE_LOG_ENABLED', true),
+    'channel' => 'forge-test-branches',
+    'driver' => 'daily',
+    'path' => storage_path('logs/forge-test-branches.log'),
+    'days' => 14,
+    'level' => env('FORGE_LOG_LEVEL', 'debug'),
+],
+```
+
+Set `FORGE_LOG_ENABLED=false` to disable logging or `FORGE_LOG_LEVEL=info` to reduce verbosity.
+
 ### Database seeding
 
 ```php
@@ -488,6 +555,7 @@ Check:
 
 **4. HTTP 500 - Server Error:**
 
+- Check package logs: `tail -f storage/logs/forge-test-branches-*.log`
 - Check application logs: `tail -f storage/logs/laravel.log`
 
 **5. Webhook doesn't trigger when deleting branch:**

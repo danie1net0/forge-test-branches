@@ -252,6 +252,15 @@ php artisan forge-test-branches:deploy --branch=feat/nova-feature
 
 # Destruir ambiente
 php artisan forge-test-branches:destroy --branch=feat/nova-feature
+
+# Listar ambientes (mostra status Active/Orphan)
+php artisan forge-test-branches:list
+
+# Listar apenas ambientes órfãos (branch não existe mais no remoto)
+php artisan forge-test-branches:list --orphans
+
+# Destruir todos os ambientes órfãos (com confirmação)
+php artisan forge-test-branches:list --destroy-orphans
 ```
 
 No CI/CD, a variável `CI_COMMIT_REF_NAME` é detectada automaticamente:
@@ -282,6 +291,9 @@ ForgeTestBranches::deploy('feat/nova-feature');
 
 // Destruir
 ForgeTestBranches::destroy('feat/nova-feature');
+
+// Listar todos os ambientes
+$environments = ForgeTestBranches::listAll();
 ```
 
 ### Model
@@ -432,6 +444,60 @@ O placeholder `{slug}` é substituído pelo nome sanitizado da branch.
 ```
 
 Apenas branches que correspondem aos padrões terão ambientes criados.
+
+### Limpeza de órfãos
+
+Ambientes ficam órfãos quando a branch é deletada sem acionar o webhook (ex: deletada via merge request). O comando `list` detecta esses ambientes comparando com as branches remotas via `git ls-remote`.
+
+```bash
+# Ver todos os ambientes com status
+php artisan forge-test-branches:list
+
+# Saída:
+# +---------------------+-------------------------------------------+--------+---------+
+# | Branch              | Domain                                    | Status | Site ID |
+# +---------------------+-------------------------------------------+--------+---------+
+# | feat/branch-ativa   | feat-branch-ativa.review.mysite.com       | Active | 123456  |
+# | feat/branch-removida| feat-branch-removida.review.mysite.com    | Orphan | 123457  |
+# +---------------------+-------------------------------------------+--------+---------+
+
+# Destruir todos os órfãos (pede confirmação)
+php artisan forge-test-branches:list --destroy-orphans
+```
+
+Você também pode agendar a limpeza de órfãos no `routes/console.php`:
+
+```php
+use Illuminate\Support\Facades\Schedule;
+
+Schedule::command('forge-test-branches:list --destroy-orphans --no-interaction')
+    ->weekly();
+```
+
+### Logging
+
+O pacote registra todas as operações em um canal dedicado. Os logs são gravados em `storage/logs/forge-test-branches-YYYY-MM-DD.log` com rotação diária.
+
+Eventos registrados:
+
+- Criação, destruição e deploy de ambientes
+- Webhook recebido, processado, ignorado ou rejeitado
+- Falhas na validação de assinatura
+
+Configuração em `config/forge-test-branches.php`:
+
+```php
+'logging' => [
+    'enabled' => env('FORGE_LOG_ENABLED', true),
+    'channel' => 'forge-test-branches',
+    'driver' => 'daily',
+    'path' => storage_path('logs/forge-test-branches.log'),
+    'days' => 14,
+    'level' => env('FORGE_LOG_LEVEL', 'debug'),
+],
+```
+
+Defina `FORGE_LOG_ENABLED=false` para desabilitar ou `FORGE_LOG_LEVEL=info` para reduzir a verbosidade.
 
 ### Database seeding
 
