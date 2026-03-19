@@ -447,6 +447,63 @@ El placeholder `{slug}` se reemplaza por el nombre sanitizado de la rama.
 
 Solo las ramas que coincidan con los patrones tendrán entornos creados.
 
+### Limpieza de huérfanos
+
+Los entornos quedan huérfanos cuando su rama se elimina sin activar el webhook (ej: eliminada vía merge request). El comando `list` detecta estos entornos comparando con las ramas remotas vía `git ls-remote`.
+
+```bash
+# Ver todos los entornos con estado
+php artisan forge-test-branches:list
+
+# Salida:
+# +---------------------+-------------------------------------------+--------+---------+
+# | Branch              | Domain                                    | Status | Site ID |
+# +---------------------+-------------------------------------------+--------+---------+
+# | feat/rama-activa    | feat-rama-activa.review.mysite.com        | Active | 123456  |
+# | feat/rama-eliminada | feat-rama-eliminada.review.mysite.com     | Orphan | 123457  |
+# +---------------------+-------------------------------------------+--------+---------+
+
+# Destruir todos los huérfanos (pide confirmación)
+php artisan forge-test-branches:list --destroy-orphans
+
+# Destruir sin confirmación (para tareas programadas)
+php artisan forge-test-branches:list --destroy-orphans --force
+```
+
+También puede programar la limpieza de huérfanos en `routes/console.php`:
+
+```php
+use Illuminate\Support\Facades\Schedule;
+
+Schedule::command('forge-test-branches:list --destroy-orphans --force')
+    ->weekly();
+```
+
+### Logging
+
+El paquete registra todas las operaciones en un canal dedicado. Los logs se graban en `storage/logs/forge-test-branches-YYYY-MM-DD.log` con rotación diaria.
+
+Eventos registrados:
+
+- Creación, destrucción y deploy de entornos
+- Webhook recibido, procesado, ignorado o rechazado
+- Fallos en la validación de firma
+
+Configuración en `config/forge-test-branches.php`:
+
+```php
+'logging' => [
+    'enabled' => env('FORGE_LOG_ENABLED', true),
+    'channel' => 'forge-test-branches',
+    'driver' => 'daily',
+    'path' => storage_path('logs/forge-test-branches.log'),
+    'days' => 14,
+    'level' => env('FORGE_LOG_LEVEL', 'debug'),
+],
+```
+
+Defina `FORGE_LOG_ENABLED=false` para deshabilitar o `FORGE_LOG_LEVEL=info` para reducir la verbosidad.
+
 ### Database seeding
 
 ```php

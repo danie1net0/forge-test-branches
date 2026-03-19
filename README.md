@@ -468,6 +468,9 @@ php artisan forge-test-branches:list
 
 # Destroy all orphans (asks for confirmation)
 php artisan forge-test-branches:list --destroy-orphans
+
+# Destroy without confirmation (for scheduled tasks)
+php artisan forge-test-branches:list --destroy-orphans --force
 ```
 
 You can also schedule orphan cleanup in your `routes/console.php`:

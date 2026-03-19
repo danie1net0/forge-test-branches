@@ -449,6 +449,63 @@ The `{slug}` placeholder is replaced by the sanitized branch name.
 
 Only branches matching the patterns will have environments created.
 
+### Orphan cleanup
+
+Environments become orphaned when their branch is deleted without triggering the webhook (e.g., deleted via merge request). The `list` command detects these by comparing environments against remote branches via `git ls-remote`.
+
+```bash
+# See all environments with status
+php artisan forge-test-branches:list
+
+# Output:
+# +---------------------+-------------------------------------------+--------+---------+
+# | Branch              | Domain                                    | Status | Site ID |
+# +---------------------+-------------------------------------------+--------+---------+
+# | feat/active-branch  | feat-active-branch.review.mysite.com      | Active | 123456  |
+# | feat/deleted-branch | feat-deleted-branch.review.mysite.com     | Orphan | 123457  |
+# +---------------------+-------------------------------------------+--------+---------+
+
+# Destroy all orphans (asks for confirmation)
+php artisan forge-test-branches:list --destroy-orphans
+
+# Destroy without confirmation (for scheduled tasks)
+php artisan forge-test-branches:list --destroy-orphans --force
+```
+
+You can also schedule orphan cleanup in your `routes/console.php`:
+
+```php
+use Illuminate\Support\Facades\Schedule;
+
+Schedule::command('forge-test-branches:list --destroy-orphans --force')
+    ->weekly();
+```
+
+### Logging
+
+The package logs all operations to a dedicated channel. Logs are written to `storage/logs/forge-test-branches-YYYY-MM-DD.log` with daily rotation.
+
+Events logged:
+
+- Environment creation, destruction, and deployment
+- Webhook received, processed, ignored, or rejected
+- Signature validation failures
+
+Configuration in `config/forge-test-branches.php`:
+
+```php
+'logging' => [
+    'enabled' => env('FORGE_LOG_ENABLED', true),
+    'channel' => 'forge-test-branches',
+    'driver' => 'daily',
+    'path' => storage_path('logs/forge-test-branches.log'),
+    'days' => 14,
+    'level' => env('FORGE_LOG_LEVEL', 'debug'),
+],
+```
+
+Set `FORGE_LOG_ENABLED=false` to disable logging or `FORGE_LOG_LEVEL=info` to reduce verbosity.
+
 ### Database seeding
 
 ```php

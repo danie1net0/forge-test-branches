@@ -467,6 +467,9 @@ php artisan forge-test-branches:list
 
 # Destruir todos os órfãos (pede confirmação)
 php artisan forge-test-branches:list --destroy-orphans
+
+# Destruir sem confirmação (para tarefas agendadas)
+php artisan forge-test-branches:list --destroy-orphans --force
 ```
 
 Você também pode agendar a limpeza de órfãos no `routes/console.php`:
