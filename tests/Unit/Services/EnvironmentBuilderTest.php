@@ -102,6 +102,9 @@ test('cria ambiente completo com sucesso', function (): void {
         ->once()
         ->andReturn(makeSiteData(100, 'feat-hu-123.review.example.com'));
 
+    $siteResource->shouldReceive('get')
+        ->andReturn(makeSiteData(100, 'feat-hu-123.review.example.com'));
+
     $siteResource->shouldReceive('getEnvironment')
         ->once()
         ->andReturn("APP_NAME=Laravel\nAPP_ENV=local");
@@ -311,6 +314,7 @@ test('envia dados corretos para criação de usuário de database', function ():
 
     $siteResource->shouldReceive('installGitRepository')->once()->andReturn(makeSiteData(100, 'feat-test.review.example.com'));
     $siteResource->shouldReceive('waitForRepositoryInstallation')->once()->andReturn(makeSiteData(100, 'feat-test.review.example.com'));
+    $siteResource->shouldReceive('get')->andReturn(makeSiteData(100, 'feat-test.review.example.com'));
     $siteResource->shouldReceive('getEnvironment')->once()->andReturn("APP_NAME=Laravel\nAPP_ENV=local");
     $siteResource->shouldReceive('updateEnvironment')->once();
     $siteResource->shouldReceive('updateDeploymentScript')->once();
@@ -367,6 +371,7 @@ test('trunca nome do database respeitando limite de 32 caracteres', function ():
 
     $siteResource->shouldReceive('installGitRepository')->once()->andReturn(makeSiteData(100, 'sprint-16-feature-test-branches.review.example.com'));
     $siteResource->shouldReceive('waitForRepositoryInstallation')->once()->andReturn(makeSiteData(100, 'sprint-16-feature-test-branches.review.example.com'));
+    $siteResource->shouldReceive('get')->andReturn(makeSiteData(100, 'sprint-16-feature-test-branches.review.example.com'));
     $siteResource->shouldReceive('getEnvironment')->once()->andReturn("APP_NAME=Laravel\nAPP_ENV=local");
     $siteResource->shouldReceive('updateEnvironment')->once();
     $siteResource->shouldReceive('updateDeploymentScript')->once();
@@ -408,6 +413,7 @@ test('processa placeholders {slug} e {env:VAR} nas variáveis de ambiente', func
     $siteResource->shouldReceive('create')->once()->andReturn(makeSiteData(100, 'test.review.example.com'));
     $siteResource->shouldReceive('installGitRepository')->once()->andReturn(makeSiteData(100, 'test.review.example.com'));
     $siteResource->shouldReceive('waitForRepositoryInstallation')->once()->andReturn(makeSiteData(100, 'test.review.example.com'));
+    $siteResource->shouldReceive('get')->andReturn(makeSiteData(100, 'test.review.example.com'));
     $siteResource->shouldReceive('getEnvironment')->once()->andReturn('APP_NAME=Laravel');
     $siteResource->shouldReceive('updateEnvironment')
         ->once()
@@ -508,6 +514,7 @@ test('cria ambiente com certificado SSL quando habilitado', function (): void {
     $siteResource->shouldReceive('create')->once()->andReturn(makeSiteData(100, 'feat-ssl.review.example.com'));
     $siteResource->shouldReceive('installGitRepository')->once()->andReturn(makeSiteData(100, 'feat-ssl.review.example.com'));
     $siteResource->shouldReceive('waitForRepositoryInstallation')->once()->andReturn(makeSiteData(100, 'feat-ssl.review.example.com'));
+    $siteResource->shouldReceive('get')->andReturn(makeSiteData(100, 'feat-ssl.review.example.com'));
     $siteResource->shouldReceive('getEnvironment')->once()->andReturn('APP_NAME=Laravel');
     $siteResource->shouldReceive('updateEnvironment')->once();
     $siteResource->shouldReceive('updateDeploymentScript')->once();
@@ -544,6 +551,7 @@ test('não habilita quick deploy quando desabilitado', function (): void {
     $siteResource->shouldReceive('create')->once()->andReturn(makeSiteData(100, 'feat-no-qd.review.example.com'));
     $siteResource->shouldReceive('installGitRepository')->once()->andReturn(makeSiteData(100, 'feat-no-qd.review.example.com'));
     $siteResource->shouldReceive('waitForRepositoryInstallation')->once()->andReturn(makeSiteData(100, 'feat-no-qd.review.example.com'));
+    $siteResource->shouldReceive('get')->andReturn(makeSiteData(100, 'feat-no-qd.review.example.com'));
     $siteResource->shouldReceive('getEnvironment')->once()->andReturn('APP_NAME=Laravel');
     $siteResource->shouldReceive('updateEnvironment')->once();
     $siteResource->shouldReceive('updateDeploymentScript')->once();
@@ -560,4 +568,261 @@ test('não habilita quick deploy quando desabilitado', function (): void {
 
     expect($environment)->toBeInstanceOf(EnvironmentData::class)
         ->domain->toBe('feat-no-qd.review.example.com');
+});
+
+test('faz rollback ao falhar na criação do ambiente', function (): void {
+    $databaseResource = Mockery::mock(DatabaseResource::class);
+    $databaseUserResource = Mockery::mock(DatabaseUserResource::class);
+    $siteResource = Mockery::mock(SiteResource::class);
+
+    $databaseResource->shouldReceive('create')->once()
+        ->andReturn(new DatabaseData(id: 1, serverId: 12345, name: 'review_feat_fail', status: 'installed', createdAt: now()->toDateTimeString()));
+    $databaseUserResource->shouldReceive('create')->once()
+        ->andReturn(new DatabaseUserData(id: 2, serverId: 12345, name: 'review_feat_fail', status: 'installed', createdAt: now()->toDateTimeString(), databases: [1]));
+    $siteResource->shouldReceive('create')->once()
+        ->andReturn(makeSiteData(100, 'feat-fail.review.example.com'));
+    $siteResource->shouldReceive('installGitRepository')->once()
+        ->andThrow(new RuntimeException('Git install failed'));
+
+    $siteResource->shouldReceive('delete')->once()->with(12345, 100);
+    $databaseUserResource->shouldReceive('delete')->once()->with(12345, 2);
+    $databaseResource->shouldReceive('delete')->once()->with(12345, 1);
+
+    $forgeClient = Mockery::mock(ForgeClient::class);
+    $forgeClient->shouldReceive('databases')->andReturn($databaseResource);
+    $forgeClient->shouldReceive('databaseUsers')->andReturn($databaseUserResource);
+    $forgeClient->shouldReceive('sites')->andReturn($siteResource);
+
+    $builder = makeEnvironmentBuilder($forgeClient);
+
+    expect(fn (): EnvironmentData => $builder->create('feat/fail'))
+        ->toThrow(RuntimeException::class, 'Git install failed');
+});
+
+test('rollback trata erros individuais sem propagar', function (): void {
+    $databaseResource = Mockery::mock(DatabaseResource::class);
+    $databaseUserResource = Mockery::mock(DatabaseUserResource::class);
+    $siteResource = Mockery::mock(SiteResource::class);
+
+    $databaseResource->shouldReceive('create')->once()
+        ->andReturn(new DatabaseData(id: 1, serverId: 12345, name: 'review_feat_rb', status: 'installed', createdAt: now()->toDateTimeString()));
+    $databaseUserResource->shouldReceive('create')->once()
+        ->andReturn(new DatabaseUserData(id: 2, serverId: 12345, name: 'review_feat_rb', status: 'installed', createdAt: now()->toDateTimeString(), databases: [1]));
+    $siteResource->shouldReceive('create')->once()
+        ->andReturn(makeSiteData(100, 'feat-rb.review.example.com'));
+    $siteResource->shouldReceive('installGitRepository')->once()
+        ->andThrow(new RuntimeException('Git install failed'));
+
+    $siteResource->shouldReceive('delete')->once()->andThrow(new RuntimeException('Site delete failed'));
+    $databaseUserResource->shouldReceive('delete')->once()->andThrow(new RuntimeException('User delete failed'));
+    $databaseResource->shouldReceive('delete')->once()->andThrow(new RuntimeException('DB delete failed'));
+
+    $forgeClient = Mockery::mock(ForgeClient::class);
+    $forgeClient->shouldReceive('databases')->andReturn($databaseResource);
+    $forgeClient->shouldReceive('databaseUsers')->andReturn($databaseUserResource);
+    $forgeClient->shouldReceive('sites')->andReturn($siteResource);
+
+    $builder = makeEnvironmentBuilder($forgeClient);
+
+    expect(fn (): EnvironmentData => $builder->create('feat/rb'))
+        ->toThrow(RuntimeException::class, 'Git install failed');
+});
+
+test('rollback ignora recursos null', function (): void {
+    $databaseResource = Mockery::mock(DatabaseResource::class);
+    $databaseUserResource = Mockery::mock(DatabaseUserResource::class);
+    $siteResource = Mockery::mock(SiteResource::class);
+
+    $databaseResource->shouldReceive('create')->once()
+        ->andThrow(new RuntimeException('Database creation failed'));
+
+    $siteResource->shouldNotReceive('delete');
+    $databaseUserResource->shouldNotReceive('delete');
+    $databaseResource->shouldNotReceive('delete');
+
+    $forgeClient = Mockery::mock(ForgeClient::class);
+    $forgeClient->shouldReceive('databases')->andReturn($databaseResource);
+    $forgeClient->shouldReceive('databaseUsers')->andReturn($databaseUserResource);
+    $forgeClient->shouldReceive('sites')->andReturn($siteResource);
+
+    $builder = makeEnvironmentBuilder($forgeClient);
+
+    expect(fn (): EnvironmentData => $builder->create('feat/fail-early'))
+        ->toThrow(RuntimeException::class, 'Database creation failed');
+});
+
+test('lança exceção de destruição parcial quando falha ao deletar site', function (): void {
+    $environment = new EnvironmentData(
+        branch: 'feat/partial',
+        slug: 'feat-partial',
+        domain: 'feat-partial.review.example.com',
+        serverId: 12345,
+        siteId: 200,
+        databaseId: 10,
+        databaseUserId: 20,
+    );
+
+    $siteResource = Mockery::mock(SiteResource::class);
+    $databaseResource = Mockery::mock(DatabaseResource::class);
+    $databaseUserResource = Mockery::mock(DatabaseUserResource::class);
+
+    $siteResource->shouldReceive('delete')->once()->andThrow(new RuntimeException('Site delete error'));
+    $databaseUserResource->shouldReceive('delete')->once()->with(12345, 20);
+    $databaseResource->shouldReceive('delete')->once()->with(12345, 10);
+
+    $forgeClient = Mockery::mock(ForgeClient::class);
+    $forgeClient->shouldReceive('sites')->andReturn($siteResource);
+    $forgeClient->shouldReceive('databases')->andReturn($databaseResource);
+    $forgeClient->shouldReceive('databaseUsers')->andReturn($databaseUserResource);
+
+    $builder = makeEnvironmentBuilder($forgeClient);
+
+    expect(fn (): null => $builder->destroy($environment) ?? null)
+        ->toThrow(RuntimeException::class, 'Partial destruction');
+});
+
+test('lança exceção de destruição parcial quando falha ao deletar database user', function (): void {
+    $environment = new EnvironmentData(
+        branch: 'feat/partial-user',
+        slug: 'feat-partial-user',
+        domain: 'feat-partial-user.review.example.com',
+        serverId: 12345,
+        siteId: 200,
+        databaseId: 10,
+        databaseUserId: 20,
+    );
+
+    $siteResource = Mockery::mock(SiteResource::class);
+    $databaseResource = Mockery::mock(DatabaseResource::class);
+    $databaseUserResource = Mockery::mock(DatabaseUserResource::class);
+
+    $siteResource->shouldReceive('delete')->once();
+    $databaseUserResource->shouldReceive('delete')->once()->andThrow(new RuntimeException('User delete error'));
+    $databaseResource->shouldReceive('delete')->once();
+
+    $forgeClient = Mockery::mock(ForgeClient::class);
+    $forgeClient->shouldReceive('sites')->andReturn($siteResource);
+    $forgeClient->shouldReceive('databases')->andReturn($databaseResource);
+    $forgeClient->shouldReceive('databaseUsers')->andReturn($databaseUserResource);
+
+    $builder = makeEnvironmentBuilder($forgeClient);
+
+    expect(fn (): null => $builder->destroy($environment) ?? null)
+        ->toThrow(RuntimeException::class, 'Partial destruction');
+});
+
+test('lança exceção de destruição parcial quando falha ao deletar database', function (): void {
+    $environment = new EnvironmentData(
+        branch: 'feat/partial-db',
+        slug: 'feat-partial-db',
+        domain: 'feat-partial-db.review.example.com',
+        serverId: 12345,
+        siteId: 200,
+        databaseId: 10,
+        databaseUserId: 20,
+    );
+
+    $siteResource = Mockery::mock(SiteResource::class);
+    $databaseResource = Mockery::mock(DatabaseResource::class);
+    $databaseUserResource = Mockery::mock(DatabaseUserResource::class);
+
+    $siteResource->shouldReceive('delete')->once();
+    $databaseUserResource->shouldReceive('delete')->once();
+    $databaseResource->shouldReceive('delete')->once()->andThrow(new RuntimeException('DB delete error'));
+
+    $forgeClient = Mockery::mock(ForgeClient::class);
+    $forgeClient->shouldReceive('sites')->andReturn($siteResource);
+    $forgeClient->shouldReceive('databases')->andReturn($databaseResource);
+    $forgeClient->shouldReceive('databaseUsers')->andReturn($databaseUserResource);
+
+    $builder = makeEnvironmentBuilder($forgeClient);
+
+    expect(fn (): null => $builder->destroy($environment) ?? null)
+        ->toThrow(RuntimeException::class, 'Partial destruction');
+});
+
+test('retorna array vazio quando env_variables não é array', function (): void {
+    config(['forge-test-branches.env_variables' => 'not-an-array']);
+
+    $capturedEnv = null;
+
+    $databaseResource = Mockery::mock(DatabaseResource::class);
+    $databaseUserResource = Mockery::mock(DatabaseUserResource::class);
+    $siteResource = Mockery::mock(SiteResource::class);
+
+    $databaseResource->shouldReceive('create')->once()
+        ->andReturn(new DatabaseData(id: 1, serverId: 12345, name: 'review_feat_env', status: 'installed', createdAt: now()->toDateTimeString()));
+    $databaseUserResource->shouldReceive('create')->once()
+        ->andReturn(new DatabaseUserData(id: 2, serverId: 12345, name: 'review_feat_env', status: 'installed', createdAt: now()->toDateTimeString(), databases: [1]));
+    $siteResource->shouldReceive('create')->once()->andReturn(makeSiteData(100, 'feat-env.review.example.com'));
+    $siteResource->shouldReceive('installGitRepository')->once()->andReturn(makeSiteData(100, 'feat-env.review.example.com'));
+    $siteResource->shouldReceive('waitForRepositoryInstallation')->once()->andReturn(makeSiteData(100, 'feat-env.review.example.com'));
+    $siteResource->shouldReceive('get')->andReturn(makeSiteData(100, 'feat-env.review.example.com'));
+    $siteResource->shouldReceive('getEnvironment')->once()->andReturn('APP_NAME=Laravel');
+    $siteResource->shouldReceive('updateEnvironment')
+        ->once()
+        ->withArgs(function (int $serverId, int $siteId, string $content) use (&$capturedEnv): bool {
+            $capturedEnv = $content;
+
+            return true;
+        });
+    $siteResource->shouldReceive('updateDeploymentScript')->once();
+    $siteResource->shouldReceive('enableQuickDeploy')->once();
+    $siteResource->shouldReceive('deploy')->once();
+
+    $forgeClient = Mockery::mock(ForgeClient::class);
+    $forgeClient->shouldReceive('databases')->andReturn($databaseResource);
+    $forgeClient->shouldReceive('databaseUsers')->andReturn($databaseUserResource);
+    $forgeClient->shouldReceive('sites')->andReturn($siteResource);
+
+    $builder = makeEnvironmentBuilder($forgeClient);
+    $builder->create('feat/env');
+
+    expect($capturedEnv)->not->toContain('not-an-array');
+});
+
+test('processa placeholder {env:VAR} com valor null retornando vazio', function (): void {
+    putenv('NONEXISTENT_VAR');
+
+    config([
+        'forge-test-branches.env_variables' => [
+            'CUSTOM_VAR' => '{env:NONEXISTENT_VAR}',
+        ],
+    ]);
+
+    $capturedEnv = null;
+
+    $databaseResource = Mockery::mock(DatabaseResource::class);
+    $databaseUserResource = Mockery::mock(DatabaseUserResource::class);
+    $siteResource = Mockery::mock(SiteResource::class);
+
+    $databaseResource->shouldReceive('create')->once()
+        ->andReturn(new DatabaseData(id: 1, serverId: 12345, name: 'review_feat_null', status: 'installed', createdAt: now()->toDateTimeString()));
+    $databaseUserResource->shouldReceive('create')->once()
+        ->andReturn(new DatabaseUserData(id: 2, serverId: 12345, name: 'review_feat_null', status: 'installed', createdAt: now()->toDateTimeString(), databases: [1]));
+    $siteResource->shouldReceive('create')->once()->andReturn(makeSiteData(100, 'feat-null.review.example.com'));
+    $siteResource->shouldReceive('installGitRepository')->once()->andReturn(makeSiteData(100, 'feat-null.review.example.com'));
+    $siteResource->shouldReceive('waitForRepositoryInstallation')->once()->andReturn(makeSiteData(100, 'feat-null.review.example.com'));
+    $siteResource->shouldReceive('get')->andReturn(makeSiteData(100, 'feat-null.review.example.com'));
+    $siteResource->shouldReceive('getEnvironment')->once()->andReturn('APP_NAME=Laravel');
+    $siteResource->shouldReceive('updateEnvironment')
+        ->once()
+        ->withArgs(function (int $serverId, int $siteId, string $content) use (&$capturedEnv): bool {
+            $capturedEnv = $content;
+
+            return true;
+        });
+    $siteResource->shouldReceive('updateDeploymentScript')->once();
+    $siteResource->shouldReceive('enableQuickDeploy')->once();
+    $siteResource->shouldReceive('deploy')->once();
+
+    $forgeClient = Mockery::mock(ForgeClient::class);
+    $forgeClient->shouldReceive('databases')->andReturn($databaseResource);
+    $forgeClient->shouldReceive('databaseUsers')->andReturn($databaseUserResource);
+    $forgeClient->shouldReceive('sites')->andReturn($siteResource);
+
+    $builder = makeEnvironmentBuilder($forgeClient);
+    $builder->create('feat/null');
+
+    expect($capturedEnv)->toContain('CUSTOM_VAR=');
 });

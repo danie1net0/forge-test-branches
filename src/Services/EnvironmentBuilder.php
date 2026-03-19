@@ -7,7 +7,7 @@ namespace Ddr\ForgeTestBranches\Services;
 use Ddr\ForgeTestBranches\Data\{CreateDatabaseData, CreateDatabaseUserData, CreateSiteData, DatabaseData, DatabaseUserData, EnvironmentData, InstallGitRepositoryData, SiteData};
 use Ddr\ForgeTestBranches\Integrations\Forge\ForgeClient;
 use Ddr\ForgeTestBranches\Logger;
-use Illuminate\Support\Str;
+use Illuminate\Support\{Sleep, Str};
 use RuntimeException;
 use Throwable;
 
@@ -47,6 +47,8 @@ class EnvironmentBuilder
             $this->installGitRepository($serverId, $site->id, $branch);
             $this->forge->sites()->waitForRepositoryInstallation($serverId, $site->id);
             $this->logger->debug('Git repository installed', ['branch' => $branch]);
+
+            $this->waitForForgeProvisioning($serverId, $site->id);
 
             $this->updateEnvironment($serverId, $site->id, $database->name, $databaseUser->name, $databasePassword, $slug);
             $this->updateDeploymentScript($serverId, $site->id, $branch);
@@ -363,6 +365,25 @@ class EnvironmentBuilder
             },
             $value
         );
+    }
+
+    private function waitForForgeProvisioning(int $serverId, int $siteId, int $maxAttempts = 12, int $sleepSeconds = 5): void
+    {
+        $this->logger->debug('Waiting for Forge provisioning to complete');
+
+        for ($attempt = 0; $attempt < $maxAttempts; $attempt++) {
+            $site = $this->forge->sites()->get($serverId, $siteId);
+
+            if ($site->status === 'installed' && $site->deploymentStatus === null) {
+                $this->logger->debug('Forge provisioning completed');
+
+                return;
+            }
+
+            Sleep::sleep($sleepSeconds);
+        }
+
+        $this->logger->warning('Forge provisioning wait timed out, proceeding anyway');
     }
 
     private function rollbackCreation(int $serverId, ?SiteData $site, ?DatabaseData $database, ?DatabaseUserData $databaseUser): void
