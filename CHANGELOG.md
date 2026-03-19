@@ -1,3 +1,11 @@
+## [1.9.2](https://github.com/danie1net0/forge-test-branches/compare/v1.9.1...v1.9.2) (2026-03-19)
+
+
+### Bug Fixes
+
+* **forge:** aguarda provisionamento do Forge antes de configurar ambiente ([52dab13](https://github.com/danie1net0/forge-test-branches/commit/52dab1396dcaf2bef0a7f5b413db1149464c4f8e))
+* **security:** corrige vulnerabilidades de segurança ([d55758b](https://github.com/danie1net0/forge-test-branches/commit/d55758be1287f5322f83e91f0b9097f72f371e97))
+
 ## [1.9.1](https://github.com/danie1net0/forge-test-branches/compare/v1.9.0...v1.9.1) (2026-03-19)
 
 
