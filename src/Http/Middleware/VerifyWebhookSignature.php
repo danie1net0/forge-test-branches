@@ -21,7 +21,8 @@ class VerifyWebhookSignature
         $secret = config('forge-test-branches.webhook.secret');
 
         if (! is_string($secret) || $secret === '') {
-            return $next($request);
+            $this->logger->error('Webhook rejected: no secret configured. Set FORGE_WEBHOOK_SECRET.');
+            abort(403, 'Webhook secret not configured');
         }
 
         if ($this->isGitHubRequest($request)) {
@@ -38,9 +39,9 @@ class VerifyWebhookSignature
 
     private function verifyGitLabToken(Request $request, Closure $next, string $secret): Response
     {
-        $token = $request->header('X-Gitlab-Token');
+        $token = (string) $request->header('X-Gitlab-Token');
 
-        if ($token !== $secret) {
+        if (! hash_equals($secret, $token)) {
             $this->logger->warning('Webhook rejected: invalid GitLab token');
             abort(401, 'Invalid webhook token');
         }

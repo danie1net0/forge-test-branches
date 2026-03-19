@@ -8,6 +8,8 @@ use Ddr\ForgeTestBranches\Data\{CreateDatabaseData, CreateDatabaseUserData, Crea
 use Ddr\ForgeTestBranches\Integrations\Forge\ForgeClient;
 use Ddr\ForgeTestBranches\Logger;
 use Illuminate\Support\Str;
+use RuntimeException;
+use Throwable;
 
 class EnvironmentBuilder
 {
@@ -28,33 +30,44 @@ class EnvironmentBuilder
 
         $this->logger->info('Creating environment', ['branch' => $branch, 'domain' => $domain, 'server_id' => $serverId]);
 
-        $database = $this->createDatabase($serverId, $slug);
-        $this->logger->debug('Database created', ['database' => $database->name]);
+        $database = null;
+        $databaseUser = null;
+        $site = null;
 
-        [$databaseUser, $databasePassword] = $this->createDatabaseUser($serverId, $slug, $database);
-        $this->logger->debug('Database user created', ['user' => $databaseUser->name]);
+        try {
+            $database = $this->createDatabase($serverId, $slug);
+            $this->logger->debug('Database created', ['database' => $database->name]);
 
-        $site = $this->createSite($serverId, $domain);
-        $this->logger->debug('Site created', ['site_id' => $site->id, 'domain' => $domain]);
+            [$databaseUser, $databasePassword] = $this->createDatabaseUser($serverId, $slug, $database);
+            $this->logger->debug('Database user created', ['user' => $databaseUser->name]);
 
-        $this->installGitRepository($serverId, $site->id, $branch);
-        $this->forge->sites()->waitForRepositoryInstallation($serverId, $site->id);
-        $this->logger->debug('Git repository installed', ['branch' => $branch]);
+            $site = $this->createSite($serverId, $domain);
+            $this->logger->debug('Site created', ['site_id' => $site->id, 'domain' => $domain]);
 
-        $this->updateEnvironment($serverId, $site->id, $database->name, $databaseUser->name, $databasePassword, $slug);
-        $this->updateDeploymentScript($serverId, $site->id, $branch);
+            $this->installGitRepository($serverId, $site->id, $branch);
+            $this->forge->sites()->waitForRepositoryInstallation($serverId, $site->id);
+            $this->logger->debug('Git repository installed', ['branch' => $branch]);
 
-        if (config('forge-test-branches.ssl.enabled') === true) {
-            $this->obtainSslCertificate($serverId, $site->id, $domain);
-            $this->logger->debug('SSL certificate obtained', ['domain' => $domain]);
+            $this->updateEnvironment($serverId, $site->id, $database->name, $databaseUser->name, $databasePassword, $slug);
+            $this->updateDeploymentScript($serverId, $site->id, $branch);
+
+            if (config('forge-test-branches.ssl.enabled') === true) {
+                $this->obtainSslCertificate($serverId, $site->id, $domain);
+                $this->logger->debug('SSL certificate obtained', ['domain' => $domain]);
+            }
+
+            if (config('forge-test-branches.deploy.quick_deploy') === true) {
+                $this->forge->sites()->enableQuickDeploy($serverId, $site->id);
+            }
+
+            $this->forge->sites()->deploy($serverId, $site->id);
+            $this->logger->info('Environment created', ['branch' => $branch, 'domain' => $domain, 'site_id' => $site->id]);
+        } catch (Throwable $throwable) {
+            $this->logger->error('Environment creation failed, rolling back', ['branch' => $branch, 'error' => $throwable->getMessage()]);
+            $this->rollbackCreation($serverId, $site, $database, $databaseUser);
+
+            throw $throwable;
         }
-
-        if (config('forge-test-branches.deploy.quick_deploy') === true) {
-            $this->forge->sites()->enableQuickDeploy($serverId, $site->id);
-        }
-
-        $this->forge->sites()->deploy($serverId, $site->id);
-        $this->logger->info('Environment created', ['branch' => $branch, 'domain' => $domain, 'site_id' => $site->id]);
 
         return new EnvironmentData(
             branch: $branch,
@@ -132,14 +145,35 @@ class EnvironmentBuilder
     {
         $this->logger->info('Destroying environment', ['branch' => $environment->branch, 'domain' => $environment->domain, 'site_id' => $environment->siteId]);
 
-        $this->forge->sites()->delete($environment->serverId, $environment->siteId);
+        $errors = [];
+
+        try {
+            $this->forge->sites()->delete($environment->serverId, $environment->siteId);
+        } catch (Throwable $throwable) {
+            $errors[] = "Site: {$throwable->getMessage()}";
+            $this->logger->error('Failed to delete site', ['site_id' => $environment->siteId, 'error' => $throwable->getMessage()]);
+        }
 
         if ($environment->databaseUserId !== null) {
-            $this->forge->databaseUsers()->delete($environment->serverId, $environment->databaseUserId);
+            try {
+                $this->forge->databaseUsers()->delete($environment->serverId, $environment->databaseUserId);
+            } catch (Throwable $throwable) {
+                $errors[] = "Database user: {$throwable->getMessage()}";
+                $this->logger->error('Failed to delete database user', ['user_id' => $environment->databaseUserId, 'error' => $throwable->getMessage()]);
+            }
         }
 
         if ($environment->databaseId !== null) {
-            $this->forge->databases()->delete($environment->serverId, $environment->databaseId);
+            try {
+                $this->forge->databases()->delete($environment->serverId, $environment->databaseId);
+            } catch (Throwable $throwable) {
+                $errors[] = "Database: {$throwable->getMessage()}";
+                $this->logger->error('Failed to delete database', ['database_id' => $environment->databaseId, 'error' => $throwable->getMessage()]);
+            }
+        }
+
+        if ($errors !== []) {
+            throw new RuntimeException('Partial destruction: ' . implode('; ', $errors));
         }
 
         $this->logger->info('Environment destroyed', ['branch' => $environment->branch, 'domain' => $environment->domain]);
@@ -329,5 +363,35 @@ class EnvironmentBuilder
             },
             $value
         );
+    }
+
+    private function rollbackCreation(int $serverId, ?SiteData $site, ?DatabaseData $database, ?DatabaseUserData $databaseUser): void
+    {
+        if ($site instanceof SiteData) {
+            try {
+                $this->forge->sites()->delete($serverId, $site->id);
+                $this->logger->debug('Rollback: site deleted', ['site_id' => $site->id]);
+            } catch (Throwable $throwable) {
+                $this->logger->error('Rollback: failed to delete site', ['site_id' => $site->id, 'error' => $throwable->getMessage()]);
+            }
+        }
+
+        if ($databaseUser instanceof DatabaseUserData) {
+            try {
+                $this->forge->databaseUsers()->delete($serverId, $databaseUser->id);
+                $this->logger->debug('Rollback: database user deleted', ['user_id' => $databaseUser->id]);
+            } catch (Throwable $throwable) {
+                $this->logger->error('Rollback: failed to delete database user', ['user_id' => $databaseUser->id, 'error' => $throwable->getMessage()]);
+            }
+        }
+
+        if ($database instanceof DatabaseData) {
+            try {
+                $this->forge->databases()->delete($serverId, $database->id);
+                $this->logger->debug('Rollback: database deleted', ['database_id' => $database->id]);
+            } catch (Throwable $throwable) {
+                $this->logger->error('Rollback: failed to delete database', ['database_id' => $database->id, 'error' => $throwable->getMessage()]);
+            }
+        }
     }
 }

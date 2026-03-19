@@ -25,10 +25,13 @@ class RemoteBranchResolver
             return null;
         }
 
-        $result = Process::run("git ls-remote --heads https://{$host}/{$repository}.git 2>/dev/null");
+        $httpsUrl = escapeshellarg("https://{$host}/{$repository}.git");
+        $sshUrl = escapeshellarg("git@{$host}:{$repository}.git");
+
+        $result = Process::run("git ls-remote --heads {$httpsUrl}");
 
         if (! $result->successful()) {
-            $result = Process::run("git ls-remote --heads git@{$host}:{$repository}.git 2>/dev/null");
+            $result = Process::run("git ls-remote --heads {$sshUrl}");
         }
 
         if (! $result->successful()) {

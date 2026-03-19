@@ -33,10 +33,6 @@ class Logger
     /** @param array<string, mixed> $context */
     public function error(string $message, array $context = []): void
     {
-        if (! $this->enabled) {
-            return;
-        }
-
         $this->channel->error($message, $context);
     }
 
@@ -53,10 +49,6 @@ class Logger
     /** @param array<string, mixed> $context */
     public function warning(string $message, array $context = []): void
     {
-        if (! $this->enabled) {
-            return;
-        }
-
         $this->channel->warning($message, $context);
     }
 }

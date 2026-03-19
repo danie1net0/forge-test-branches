@@ -12,11 +12,11 @@ beforeEach(function (): void {
     $this->app->instance(EnvironmentBuilder::class, $builder);
 });
 
-test('allows request when secret is not configured', function (): void {
+test('rejeita requisição quando secret não está configurado', function (): void {
     config(['forge-test-branches.webhook.secret' => null]);
 
     $this->postJson('/forge-test-branches/webhook', [], ['X-Gitlab-Event' => 'Push Hook'])
-        ->assertOk();
+        ->assertForbidden();
 });
 
 test('allows request when token matches secret', function (): void {

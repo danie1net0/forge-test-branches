@@ -2,9 +2,10 @@
 
 declare(strict_types=1);
 
-use Illuminate\Support\Facades\Process;
 use Ddr\ForgeTestBranches\Data\EnvironmentData;
 use Ddr\ForgeTestBranches\Services\EnvironmentBuilder;
+use Illuminate\Process\FakeProcessResult;
+use Illuminate\Support\Facades\Process;
 
 beforeEach(function (): void {
     config(['forge-test-branches.forge_api_token' => 'fake-token']);
@@ -45,11 +46,7 @@ test('lista todos os ambientes com status real', function (): void {
 
     $this->app->instance(EnvironmentBuilder::class, $builder);
 
-    Process::fake([
-        'git ls-remote --heads *' => Process::result(
-            output: "abc123\trefs/heads/feat/login\nabc456\trefs/heads/fix/bug-123\n"
-        ),
-    ]);
+    Process::fake(['*' => new FakeProcessResult(output: "abc123\trefs/heads/feat/login\nabc456\trefs/heads/fix/bug-123\n")]);
 
     $this->artisan('forge-test-branches:list')
         ->expectsTable(
@@ -73,11 +70,7 @@ test('mostra ambientes órfãos e ativos na listagem padrão', function (): void
 
     $this->app->instance(EnvironmentBuilder::class, $builder);
 
-    Process::fake([
-        'git ls-remote --heads *' => Process::result(
-            output: "abc123\trefs/heads/feat/login\n"
-        ),
-    ]);
+    Process::fake(['*' => new FakeProcessResult(output: "abc123\trefs/heads/feat/login\n")]);
 
     $this->artisan('forge-test-branches:list')
         ->expectsTable(
@@ -113,11 +106,7 @@ test('exibe mensagem quando não há ambientes órfãos', function (): void {
 
     $this->app->instance(EnvironmentBuilder::class, $builder);
 
-    Process::fake([
-        'git ls-remote --heads *' => Process::result(
-            output: "abc123\trefs/heads/feat/login\n"
-        ),
-    ]);
+    Process::fake(['*' => new FakeProcessResult(output: "abc123\trefs/heads/feat/login\n")]);
 
     $this->artisan('forge-test-branches:list', ['--orphans' => true])
         ->expectsOutput('No orphaned environments found.')
@@ -135,11 +124,7 @@ test('lista apenas ambientes órfãos com flag --orphans', function (): void {
 
     $this->app->instance(EnvironmentBuilder::class, $builder);
 
-    Process::fake([
-        'git ls-remote --heads *' => Process::result(
-            output: "abc123\trefs/heads/feat/login\n"
-        ),
-    ]);
+    Process::fake(['*' => new FakeProcessResult(output: "abc123\trefs/heads/feat/login\n")]);
 
     $this->artisan('forge-test-branches:list', ['--orphans' => true])
         ->expectsTable(
@@ -180,11 +165,7 @@ test('destrói ambientes órfãos com confirmação', function (): void {
 
     $this->app->instance(EnvironmentBuilder::class, $builder);
 
-    Process::fake([
-        'git ls-remote --heads *' => Process::result(
-            output: "abc123\trefs/heads/feat/login\n"
-        ),
-    ]);
+    Process::fake(['*' => new FakeProcessResult(output: "abc123\trefs/heads/feat/login\n")]);
 
     $this->artisan('forge-test-branches:list', ['--destroy-orphans' => true])
         ->expectsConfirmation('Destroy 1 orphaned environment(s)? [feat/removed]', 'yes')
@@ -202,11 +183,7 @@ test('cancela destruição de órfãos quando não confirma', function (): void 
 
     $this->app->instance(EnvironmentBuilder::class, $builder);
 
-    Process::fake([
-        'git ls-remote --heads *' => Process::result(
-            output: "abc123\trefs/heads/main\n"
-        ),
-    ]);
+    Process::fake(['*' => new FakeProcessResult(output: "abc123\trefs/heads/main\n")]);
 
     $this->artisan('forge-test-branches:list', ['--destroy-orphans' => true])
         ->expectsConfirmation('Destroy 1 orphaned environment(s)? [feat/removed]', 'no')
@@ -224,9 +201,7 @@ test('exibe warning e lista sem status quando remote falha', function (): void {
 
     $this->app->instance(EnvironmentBuilder::class, $builder);
 
-    Process::fake([
-        'git ls-remote --heads *' => Process::result(exitCode: 128),
-    ]);
+    Process::fake(['*' => new FakeProcessResult(exitCode: 128)]);
 
     $this->artisan('forge-test-branches:list')
         ->expectsOutput('Could not fetch remote branches. Showing all environments without status.')
@@ -249,9 +224,7 @@ test('exibe erro quando filtra órfãos sem acesso ao remote', function (): void
 
     $this->app->instance(EnvironmentBuilder::class, $builder);
 
-    Process::fake([
-        'git ls-remote --heads *' => Process::result(exitCode: 128),
-    ]);
+    Process::fake(['*' => new FakeProcessResult(exitCode: 128)]);
 
     $this->artisan('forge-test-branches:list', ['--orphans' => true])
         ->expectsOutput('Cannot filter orphans without remote branch data.')
@@ -285,11 +258,7 @@ test('exibe erro quando destruição de órfão falha', function (): void {
 
     $this->app->instance(EnvironmentBuilder::class, $builder);
 
-    Process::fake([
-        'git ls-remote --heads *' => Process::result(
-            output: "abc123\trefs/heads/main\n"
-        ),
-    ]);
+    Process::fake(['*' => new FakeProcessResult(output: "abc123\trefs/heads/main\n")]);
 
     $this->artisan('forge-test-branches:list', ['--destroy-orphans' => true])
         ->expectsConfirmation('Destroy 1 orphaned environment(s)? [feat/removed]', 'yes')
@@ -311,11 +280,7 @@ test('exibe warning quando ambiente órfão não é encontrado no find', functio
 
     $this->app->instance(EnvironmentBuilder::class, $builder);
 
-    Process::fake([
-        'git ls-remote --heads *' => Process::result(
-            output: "abc123\trefs/heads/main\n"
-        ),
-    ]);
+    Process::fake(['*' => new FakeProcessResult(output: "abc123\trefs/heads/main\n")]);
 
     $this->artisan('forge-test-branches:list', ['--destroy-orphans' => true])
         ->expectsConfirmation('Destroy 1 orphaned environment(s)? [feat/removed]', 'yes')
@@ -350,11 +315,7 @@ test('destrói órfãos sem confirmação com flag --force', function (): void {
 
     $this->app->instance(EnvironmentBuilder::class, $builder);
 
-    Process::fake([
-        'git ls-remote --heads *' => Process::result(
-            output: "abc123\trefs/heads/main\n"
-        ),
-    ]);
+    Process::fake(['*' => new FakeProcessResult(output: "abc123\trefs/heads/main\n")]);
 
     $this->artisan('forge-test-branches:list', ['--destroy-orphans' => true, '--force' => true])
         ->expectsOutput('All orphaned environments destroyed.')

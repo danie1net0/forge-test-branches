@@ -3,6 +3,7 @@
 declare(strict_types=1);
 
 use Ddr\ForgeTestBranches\Services\RemoteBranchResolver;
+use Illuminate\Process\{FakeProcessResult, PendingProcess};
 use Illuminate\Support\Facades\Process;
 
 beforeEach(function (): void {
@@ -14,9 +15,7 @@ beforeEach(function (): void {
 
 test('resolve branches remotas via git ls-remote', function (): void {
     Process::fake([
-        'git ls-remote --heads *' => Process::result(
-            output: "abc123\trefs/heads/main\ndef456\trefs/heads/feat/login\n"
-        ),
+        '*' => new FakeProcessResult(output: "abc123\trefs/heads/main\ndef456\trefs/heads/feat/login\n"),
     ]);
 
     $resolver = new RemoteBranchResolver();
@@ -25,12 +24,17 @@ test('resolve branches remotas via git ls-remote', function (): void {
 });
 
 test('tenta SSH quando HTTPS falha', function (): void {
-    Process::fake([
-        'git ls-remote --heads https://*' => Process::result(exitCode: 128),
-        'git ls-remote --heads git@*' => Process::result(
-            output: "abc123\trefs/heads/main\n"
-        ),
-    ]);
+    $calls = 0;
+
+    Process::fake(function () use (&$calls): FakeProcessResult {
+        $calls++;
+
+        if ($calls === 1) {
+            return new FakeProcessResult(exitCode: 128);
+        }
+
+        return new FakeProcessResult(output: "abc123\trefs/heads/main\n");
+    });
 
     $resolver = new RemoteBranchResolver();
 
@@ -39,7 +43,7 @@ test('tenta SSH quando HTTPS falha', function (): void {
 
 test('retorna null quando ambos protocolos falham', function (): void {
     Process::fake([
-        'git ls-remote --heads *' => Process::result(exitCode: 128),
+        '*' => new FakeProcessResult(exitCode: 128),
     ]);
 
     $resolver = new RemoteBranchResolver();
@@ -59,14 +63,14 @@ test('resolve host correto para cada provider', function (string $provider, stri
     config(['forge-test-branches.git.provider' => $provider]);
 
     Process::fake([
-        "git ls-remote --heads https://{$expectedHost}/*" => Process::result(
-            output: "abc123\trefs/heads/main\n"
-        ),
+        '*' => new FakeProcessResult(output: "abc123\trefs/heads/main\n"),
     ]);
 
     $resolver = new RemoteBranchResolver();
 
     expect($resolver->resolve())->toBe(['main']);
+
+    Process::assertRan(fn (PendingProcess $process): bool => str_contains($process->command, $expectedHost));
 })->with([
     ['github', 'github.com'],
     ['gitlab', 'gitlab.com'],
@@ -75,7 +79,7 @@ test('resolve host correto para cada provider', function (string $provider, stri
 
 test('retorna array vazio quando repositório não tem branches', function (): void {
     Process::fake([
-        'git ls-remote --heads *' => Process::result(output: ''),
+        '*' => new FakeProcessResult(output: ''),
     ]);
 
     $resolver = new RemoteBranchResolver();

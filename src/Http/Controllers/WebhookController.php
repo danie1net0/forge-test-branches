@@ -56,7 +56,7 @@ class WebhookController extends Controller
         } catch (Throwable $throwable) {
             $logger->error('Webhook: error destroying environment', ['branch' => $branch, 'error' => $throwable->getMessage()]);
 
-            return response()->json(['message' => 'Error destroying environment', 'error' => $throwable->getMessage()], 500);
+            return response()->json(['message' => 'Error destroying environment'], 500);
         }
     }
 
