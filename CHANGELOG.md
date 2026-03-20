@@ -1,3 +1,10 @@
+# [1.10.0](https://github.com/danie1net0/forge-test-branches/compare/v1.9.2...v1.10.0) (2026-03-20)
+
+
+### Features
+
+* adiciona compatibilidade com PHP 8.5 e Laravel 13 ([d0867c9](https://github.com/danie1net0/forge-test-branches/commit/d0867c9cb0ab46d9b79695c1d569044ef8b21803))
+
 ## [1.9.2](https://github.com/danie1net0/forge-test-branches/compare/v1.9.1...v1.9.2) (2026-03-19)
 
 
