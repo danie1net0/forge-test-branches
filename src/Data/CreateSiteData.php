@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Ddr\ForgeTestBranches\Data;
 
+use Override;
 use Spatie\LaravelData\Attributes\{MapInputName, MapOutputName};
 use Spatie\LaravelData\Data;
 use Spatie\LaravelData\Mappers\SnakeCaseMapper;
@@ -27,6 +28,7 @@ class CreateSiteData extends Data
     }
 
     /** @return array<string, mixed> */
+    #[Override]
     public function toArray(): array
     {
         return array_filter(parent::toArray(), fn ($value): bool => $value !== null);
