@@ -1,3 +1,10 @@
+# [1.11.0](https://github.com/danie1net0/forge-test-branches/compare/v1.10.1...v1.11.0) (2026-03-30)
+
+
+### Features
+
+* **deps:** add Saloon v4 support ([620711f](https://github.com/danie1net0/forge-test-branches/commit/620711fb07b38ab22c6f50fc086d4164ebbb28e9))
+
 ## [1.10.1](https://github.com/danie1net0/forge-test-branches/compare/v1.10.0...v1.10.1) (2026-03-30)
 
 
