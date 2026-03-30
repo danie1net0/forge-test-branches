@@ -1,3 +1,11 @@
+## [1.10.1](https://github.com/danie1net0/forge-test-branches/compare/v1.10.0...v1.10.1) (2026-03-30)
+
+
+### Bug Fixes
+
+* **ci:** re-add Laravel 13 to test matrix ([30d816b](https://github.com/danie1net0/forge-test-branches/commit/30d816b38040236c4d75e8394b1f64eea8bd5b88))
+* **ci:** remove Laravel 13 from test matrix until deps support it ([d552c48](https://github.com/danie1net0/forge-test-branches/commit/d552c483dc42127424d56d9f0a1eded64eb7936f))
+
 # [1.10.0](https://github.com/danie1net0/forge-test-branches/compare/v1.9.2...v1.10.0) (2026-03-20)
 
 
