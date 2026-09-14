@@ -4,15 +4,26 @@ declare(strict_types=1);
 
 namespace Ddr\ForgeTestBranches\Services;
 
-use Ddr\ForgeTestBranches\Data\{CreateDatabaseData, CreateDatabaseUserData, CreateSiteData, DatabaseData, DatabaseUserData, EnvironmentData, InstallGitRepositoryData, SiteData};
+use Ddr\ForgeTestBranches\Data\{CreateDatabaseData, CreateDatabaseUserData, CreateSiteData, DatabaseData, DatabaseUserData, DomainData, EnvironmentData, SiteData};
+use Ddr\ForgeTestBranches\Exceptions\{ConfigurationException, DomainNotFoundException};
 use Ddr\ForgeTestBranches\Integrations\Forge\ForgeClient;
 use Ddr\ForgeTestBranches\Logger;
-use Illuminate\Support\{Sleep, Str};
+use Illuminate\Support\Str;
 use RuntimeException;
+use Saloon\Exceptions\Request\Statuses\NotFoundException;
 use Throwable;
 
 class EnvironmentBuilder
 {
+    /** @var array<int, string> */
+    private const array VALID_SITE_TYPES = [
+        'laravel', 'symfony', 'statamic', 'wordpress', 'phpmyadmin',
+        'php', 'nextjs', 'nuxtjs', 'static-html', 'other', 'custom',
+    ];
+
+    /** @var array<int, string> */
+    private const array VALID_GIT_PROVIDERS = ['gitlab', 'github', 'bitbucket'];
+
     public function __construct(
         protected ForgeClient $forge,
         protected BranchSanitizer $sanitizer,
@@ -24,6 +35,8 @@ class EnvironmentBuilder
 
     public function create(string $branch): EnvironmentData
     {
+        $this->assertConfigurationIsValid();
+
         $slug = $this->sanitizer->sanitize($branch);
         $domain = $this->domainBuilder->build($slug);
         $serverId = (int) config('forge-test-branches.server_id');
@@ -36,21 +49,20 @@ class EnvironmentBuilder
 
         try {
             $database = $this->createDatabase($serverId, $slug);
+            $this->forge->databases()->waitForInstallation($serverId, $database->id);
             $this->logger->debug('Database created', ['database' => $database->name]);
 
             [$databaseUser, $databasePassword] = $this->createDatabaseUser($serverId, $slug, $database);
+            $this->forge->databaseUsers()->waitForInstallation($serverId, $databaseUser->id);
             $this->logger->debug('Database user created', ['user' => $databaseUser->name]);
 
-            $site = $this->createSite($serverId, $domain);
+            $site = $this->createSite($serverId, $domain, $branch);
             $this->logger->debug('Site created', ['site_id' => $site->id, 'domain' => $domain]);
 
-            $this->installGitRepository($serverId, $site->id, $branch);
-            $this->forge->sites()->waitForRepositoryInstallation($serverId, $site->id);
-            $this->logger->debug('Git repository installed', ['branch' => $branch]);
+            $this->forge->sites()->waitForInstallation($serverId, $site->id);
+            $this->logger->debug('Site installed with git repository', ['branch' => $branch]);
 
-            $this->waitForForgeProvisioning($serverId, $site->id);
-
-            $this->updateEnvironment($serverId, $site->id, $database->name, $databaseUser->name, $databasePassword, $slug);
+            $this->updateEnvironmentFile($serverId, $site->id, $database->name, $databaseUser->name, $databasePassword, $slug);
             $this->updateDeploymentScript($serverId, $site->id, $branch);
 
             if (config('forge-test-branches.ssl.enabled') === true) {
@@ -117,9 +129,9 @@ class EnvironmentBuilder
         $domain = $this->domainBuilder->build($slug);
         $serverId = (int) config('forge-test-branches.server_id');
 
-        $site = $this->forge->sites()->findByDomain($serverId, $domain);
+        $site = $this->forge->sites()->findByName($serverId, $domain);
 
-        if (! $site instanceof SiteData) {
+        if (! $site instanceof SiteData || $site->isBeingRemoved()) {
             return null;
         }
 
@@ -147,32 +159,11 @@ class EnvironmentBuilder
     {
         $this->logger->info('Destroying environment', ['branch' => $environment->branch, 'domain' => $environment->domain, 'site_id' => $environment->siteId]);
 
-        $errors = [];
-
-        try {
-            $this->forge->sites()->delete($environment->serverId, $environment->siteId);
-        } catch (Throwable $throwable) {
-            $errors[] = "Site: {$throwable->getMessage()}";
-            $this->logger->error('Failed to delete site', ['site_id' => $environment->siteId, 'error' => $throwable->getMessage()]);
-        }
-
-        if ($environment->databaseUserId !== null) {
-            try {
-                $this->forge->databaseUsers()->delete($environment->serverId, $environment->databaseUserId);
-            } catch (Throwable $throwable) {
-                $errors[] = "Database user: {$throwable->getMessage()}";
-                $this->logger->error('Failed to delete database user', ['user_id' => $environment->databaseUserId, 'error' => $throwable->getMessage()]);
-            }
-        }
-
-        if ($environment->databaseId !== null) {
-            try {
-                $this->forge->databases()->delete($environment->serverId, $environment->databaseId);
-            } catch (Throwable $throwable) {
-                $errors[] = "Database: {$throwable->getMessage()}";
-                $this->logger->error('Failed to delete database', ['database_id' => $environment->databaseId, 'error' => $throwable->getMessage()]);
-            }
-        }
+        $errors = array_filter([
+            $this->deleteSite($environment),
+            $this->deleteDatabaseUser($environment),
+            $this->deleteDatabase($environment),
+        ]);
 
         if ($errors !== []) {
             throw new RuntimeException('Partial destruction: ' . implode('; ', $errors));
@@ -229,44 +220,35 @@ class EnvironmentBuilder
             new CreateDatabaseUserData(
                 name: $username,
                 password: $password,
-                databases: [$database->id]
+                databaseIds: [$database->id]
             )
         );
 
         return [$user, $password];
     }
 
-    protected function createSite(int $serverId, string $domain): SiteData
+    protected function createSite(int $serverId, string $domain, string $branch): SiteData
     {
         return $this->forge->sites()->create(
             $serverId,
             new CreateSiteData(
-                domain: $domain,
-                projectType: (string) config('forge-test-branches.site.project_type'),
-                directory: (string) config('forge-test-branches.site.directory'),
-                isolated: (bool) config('forge-test-branches.site.isolated'),
+                name: $domain,
+                type: (string) config('forge-test-branches.site.project_type'),
+                webDirectory: (string) config('forge-test-branches.site.directory'),
+                isIsolated: (bool) config('forge-test-branches.site.isolated'),
                 phpVersion: (string) config('forge-test-branches.site.php_version'),
-            )
-        );
-    }
-
-    protected function installGitRepository(int $serverId, int $siteId, string $branch): void
-    {
-        $this->forge->sites()->installGitRepository(
-            $serverId,
-            $siteId,
-            new InstallGitRepositoryData(
-                provider: (string) config('forge-test-branches.git.provider'),
+                sourceControlProvider: (string) config('forge-test-branches.git.provider'),
                 repository: (string) config('forge-test-branches.git.repository'),
                 branch: $branch,
-                composer: true,
+                installComposerDependencies: true,
+                zeroDowntimeDeployments: (bool) config('forge-test-branches.site.zero_downtime_deployments', false),
             )
         );
     }
 
-    protected function updateEnvironment(int $serverId, int $siteId, string $databaseName, string $databaseUser, string $databasePassword, string $slug): void
+    protected function updateEnvironmentFile(int $serverId, int $siteId, string $databaseName, string $databaseUser, string $databasePassword, string $slug): void
     {
-        $currentEnv = $this->forge->sites()->getEnvironment($serverId, $siteId);
+        $currentEnv = $this->forge->sites()->getEnvironmentFile($serverId, $siteId);
 
         $envVariables = [
             'APP_ENV' => 'staging',
@@ -280,7 +262,11 @@ class EnvironmentBuilder
 
         $updatedEnv = $this->mergeEnvVariables($currentEnv, $envVariables);
 
-        $this->forge->sites()->updateEnvironment($serverId, $siteId, $updatedEnv);
+        $this->forge->sites()->updateEnvironmentFile($serverId, $siteId, $updatedEnv);
+
+        // The write above is asynchronous (202): confirm it actually landed
+        // before the deploy script runs and reads the file.
+        $this->forge->sites()->waitForEnvironmentFileContaining($serverId, $siteId, "DB_DATABASE={$databaseName}");
     }
 
     /** @param array<string, string> $newVariables */
@@ -324,8 +310,17 @@ class EnvironmentBuilder
 
     protected function obtainSslCertificate(int $serverId, int $siteId, string $domain): void
     {
-        $certificate = $this->forge->sites()->obtainLetsEncryptCertificate($serverId, $siteId, [$domain]);
-        $this->forge->sites()->waitForCertificateActivation($serverId, $siteId, $certificate->id);
+        $domainRecord = $this->forge->domains()->findByName($serverId, $siteId, $domain);
+
+        if (! $domainRecord instanceof DomainData) {
+            throw DomainNotFoundException::onSite($domain);
+        }
+
+        $this->forge->domains()->waitForEnabled($serverId, $siteId, $domainRecord->id, $domain);
+
+        $verificationMethod = (string) config('forge-test-branches.ssl.verification_method', 'http-01');
+        $certificate = $this->forge->domains()->obtainLetsEncryptCertificate($serverId, $siteId, $domainRecord->id, $verificationMethod);
+        $this->forge->domains()->waitForCertificateActivation($serverId, $siteId, $domainRecord->id, $certificate->id);
     }
 
     /**
@@ -367,23 +362,84 @@ class EnvironmentBuilder
         );
     }
 
-    private function waitForForgeProvisioning(int $serverId, int $siteId, int $maxAttempts = 12, int $sleepSeconds = 5): void
+    private function assertConfigurationIsValid(): void
     {
-        $this->logger->debug('Waiting for Forge provisioning to complete');
+        $projectType = (string) config('forge-test-branches.site.project_type');
 
-        for ($attempt = 0; $attempt < $maxAttempts; $attempt++) {
-            $site = $this->forge->sites()->get($serverId, $siteId);
-
-            if ($site->status === 'installed' && $site->deploymentStatus === null) {
-                $this->logger->debug('Forge provisioning completed');
-
-                return;
-            }
-
-            Sleep::sleep($sleepSeconds);
+        if (! in_array($projectType, self::VALID_SITE_TYPES, true)) {
+            throw ConfigurationException::invalidProjectType($projectType);
         }
 
-        $this->logger->warning('Forge provisioning wait timed out, proceeding anyway');
+        $gitProvider = (string) config('forge-test-branches.git.provider');
+
+        if (! in_array($gitProvider, self::VALID_GIT_PROVIDERS, true)) {
+            throw ConfigurationException::invalidGitProvider($gitProvider);
+        }
+
+        $repository = config('forge-test-branches.git.repository');
+
+        if (! is_string($repository) || $repository === '') {
+            throw ConfigurationException::missingRepository();
+        }
+    }
+
+    private function deleteSite(EnvironmentData $environment): ?string
+    {
+        try {
+            $this->forge->sites()->delete($environment->serverId, $environment->siteId);
+        } catch (NotFoundException) {
+            $this->logger->debug('Site already removed', ['site_id' => $environment->siteId]);
+
+            return null;
+        } catch (Throwable $throwable) {
+            $this->logger->error('Failed to delete site', ['site_id' => $environment->siteId, 'error' => $throwable->getMessage()]);
+
+            return "Site: {$throwable->getMessage()}";
+        }
+
+        return null;
+    }
+
+    private function deleteDatabaseUser(EnvironmentData $environment): ?string
+    {
+        if ($environment->databaseUserId === null) {
+            return null;
+        }
+
+        try {
+            $this->forge->databaseUsers()->delete($environment->serverId, $environment->databaseUserId);
+        } catch (NotFoundException) {
+            $this->logger->debug('Database user already removed', ['user_id' => $environment->databaseUserId]);
+
+            return null;
+        } catch (Throwable $throwable) {
+            $this->logger->error('Failed to delete database user', ['user_id' => $environment->databaseUserId, 'error' => $throwable->getMessage()]);
+
+            return "Database user: {$throwable->getMessage()}";
+        }
+
+        return null;
+    }
+
+    private function deleteDatabase(EnvironmentData $environment): ?string
+    {
+        if ($environment->databaseId === null) {
+            return null;
+        }
+
+        try {
+            $this->forge->databases()->delete($environment->serverId, $environment->databaseId);
+        } catch (NotFoundException) {
+            $this->logger->debug('Database already removed', ['database_id' => $environment->databaseId]);
+
+            return null;
+        } catch (Throwable $throwable) {
+            $this->logger->error('Failed to delete database', ['database_id' => $environment->databaseId, 'error' => $throwable->getMessage()]);
+
+            return "Database: {$throwable->getMessage()}";
+        }
+
+        return null;
     }
 
     private function rollbackCreation(int $serverId, ?SiteData $site, ?DatabaseData $database, ?DatabaseUserData $databaseUser): void

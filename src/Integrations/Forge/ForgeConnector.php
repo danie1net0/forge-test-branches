@@ -4,23 +4,79 @@ declare(strict_types=1);
 
 namespace Ddr\ForgeTestBranches\Integrations\Forge;
 
+use Ddr\ForgeTestBranches\Integrations\Forge\Requests\PaginatedRequest;
+use Saloon\Exceptions\Request\Statuses\TooManyRequestsException;
 use Saloon\Http\Auth\TokenAuthenticator;
-use Saloon\Http\Connector;
+use Saloon\Http\{Connector, Request as SaloonRequest};
+use Saloon\Exceptions\Request\{FatalRequestException, RequestException};
 use Saloon\Traits\Plugins\{AcceptsJson, AlwaysThrowOnErrors};
+use Saloon\Traits\RequestProperties\HasTries;
 
 class ForgeConnector extends Connector
 {
     use AcceptsJson;
     use AlwaysThrowOnErrors;
+    use HasTries;
+
+    private const int MAX_PAGES = 100;
 
     public function __construct(
-        protected string $apiToken
+        protected string $apiToken,
+        protected string $organization,
     ) {
+        $this->tries = 3;
+        $this->retryInterval = 1_000;
+        $this->useExponentialBackoff = true;
     }
 
     public function resolveBaseUrl(): string
     {
-        return 'https://forge.laravel.com/api/v1';
+        return "https://forge.laravel.com/api/orgs/{$this->organization}";
+    }
+
+    /**
+     * @template TItem
+     *
+     * @param PaginatedRequest<TItem> $request
+     * @return array<int, TItem>
+     */
+    public function sendPaginated(PaginatedRequest $request): array
+    {
+        $items = [];
+        $seenCursors = [];
+        $cursor = null;
+
+        for ($page = 0; $page < self::MAX_PAGES; $page++) {
+            $request->withCursor($cursor);
+            $response = $this->send($request);
+            $items = [...$items, ...$request->createDtoFromResponse($response)];
+            $cursor = $response->json('meta.next_cursor');
+
+            if (! is_string($cursor) || $cursor === '' || isset($seenCursors[$cursor])) {
+                return $items;
+            }
+
+            $seenCursors[$cursor] = true;
+        }
+
+        return $items;
+    }
+
+    /**
+     * Only retry rate-limited (429) and server-side (5xx) failures. Client
+     * errors such as 404 or 422 are never transient and should fail fast.
+     */
+    public function handleRetry(FatalRequestException|RequestException $exception, SaloonRequest $request): bool
+    {
+        if ($exception instanceof FatalRequestException) {
+            return true;
+        }
+
+        if ($exception instanceof TooManyRequestsException) {
+            return true;
+        }
+
+        return $exception->getStatus() >= 500;
     }
 
     protected function defaultHeaders(): array

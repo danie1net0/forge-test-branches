@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Ddr\ForgeTestBranches\Integrations\Forge\Requests\Databases;
 
 use Ddr\ForgeTestBranches\Data\{CreateDatabaseUserData, DatabaseUserData};
+use Ddr\ForgeTestBranches\Integrations\Forge\Concerns\ParsesJsonApiResponses;
 use Saloon\Contracts\Body\HasBody;
 use Saloon\Enums\Method;
 use Saloon\Http\{Request, Response};
@@ -13,6 +14,7 @@ use Saloon\Traits\Body\HasJsonBody;
 class CreateDatabaseUserRequest extends Request implements HasBody
 {
     use HasJsonBody;
+    use ParsesJsonApiResponses;
 
     protected Method $method = Method::POST;
 
@@ -24,16 +26,12 @@ class CreateDatabaseUserRequest extends Request implements HasBody
 
     public function resolveEndpoint(): string
     {
-        return "/servers/{$this->serverId}/database-users";
+        return "/servers/{$this->serverId}/database/users";
     }
 
     public function createDtoFromResponse(Response $response): DatabaseUserData
     {
-        $user = $response->json('user');
-
-        return DatabaseUserData::from(array_merge($user, [
-            'server_id' => $this->serverId,
-        ]));
+        return $this->dtoFromResponse($response, DatabaseUserData::class, ['server_id' => $this->serverId]);
     }
 
     /**

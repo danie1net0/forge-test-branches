@@ -19,6 +19,6 @@ class DeploySiteRequest extends Request
 
     public function resolveEndpoint(): string
     {
-        return "/servers/{$this->serverId}/sites/{$this->siteId}/deployment/deploy";
+        return "/servers/{$this->serverId}/sites/{$this->siteId}/deployments";
     }
 }

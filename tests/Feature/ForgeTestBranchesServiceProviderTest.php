@@ -8,7 +8,10 @@ use Ddr\ForgeTestBranches\Services\{BranchPatternMatcher, BranchSanitizer, Deplo
 use Illuminate\Support\Facades\Route;
 
 beforeEach(function (): void {
-    config(['forge-test-branches.forge_api_token' => 'fake-token']);
+    config([
+        'forge-test-branches.forge_api_token' => 'fake-token',
+        'forge-test-branches.organization' => 'test-org',
+    ]);
 });
 
 test('registers ForgeClient as singleton', function (): void {

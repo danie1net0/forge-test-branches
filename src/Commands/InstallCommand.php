@@ -64,6 +64,7 @@ class InstallCommand extends Command
 
         $envContent = File::get($envPath);
         $additions = [];
+        $skipped = [];
 
         foreach ($variables as $key => $value) {
             if ($value === null) {
@@ -74,9 +75,17 @@ class InstallCommand extends Command
                 continue;
             }
 
-            if (! str_contains($envContent, "{$key}=")) {
-                $additions[] = "{$key}={$value}";
+            if (str_contains($envContent, "{$key}=")) {
+                $skipped[] = $key;
+
+                continue;
             }
+
+            $additions[] = "{$key}={$value}";
+        }
+
+        if ($skipped !== []) {
+            $this->components->warn('Already set in .env, skipping: ' . implode(', ', $skipped));
         }
 
         if ($additions === []) {
@@ -96,6 +105,12 @@ class InstallCommand extends Command
     {
         $token = password(
             label: 'FORGE_API_TOKEN (Forge API Token)',
+            required: true,
+        );
+
+        $organization = text(
+            label: 'FORGE_ORGANIZATION (Organization slug on Forge)',
+            placeholder: 'my-organization',
             required: true,
         );
 
@@ -139,6 +154,7 @@ class InstallCommand extends Command
 
         return [
             'FORGE_API_TOKEN' => $token,
+            'FORGE_ORGANIZATION' => $organization,
             'FORGE_SERVER_ID' => $serverId,
             'FORGE_REVIEW_DOMAIN' => $domain,
             'FORGE_GIT_PROVIDER' => (string) $provider,

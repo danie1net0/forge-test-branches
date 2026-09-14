@@ -5,7 +5,10 @@ declare(strict_types=1);
 use Laravel\Prompts\Prompt;
 
 beforeEach(function (): void {
-    config(['forge-test-branches.forge_api_token' => 'fake-token']);
+    config([
+        'forge-test-branches.forge_api_token' => 'fake-token',
+        'forge-test-branches.organization' => 'test-org',
+    ]);
     Prompt::fallbackWhen(true);
 });
 
@@ -46,6 +49,7 @@ test('adiciona variáveis ao env com sucesso', function (): void {
         $this->artisan('forge-test-branches:install')
             ->expectsConfirmation('Would you like to configure environment variables now?', 'yes')
             ->expectsQuestion('FORGE_API_TOKEN (Forge API Token)', 'test-token')
+            ->expectsQuestion('FORGE_ORGANIZATION (Organization slug on Forge)', 'test-org')
             ->expectsQuestion('FORGE_SERVER_ID (Server ID on Forge)', '123')
             ->expectsQuestion('FORGE_REVIEW_DOMAIN (Base domain for review apps)', 'review.test.com')
             ->expectsChoice('FORGE_GIT_PROVIDER (Git Provider)', 'GitLab', ['Bitbucket', 'GitHub', 'GitLab', 'bitbucket', 'github', 'gitlab'])
@@ -57,6 +61,7 @@ test('adiciona variáveis ao env com sucesso', function (): void {
         $envContent = file_get_contents($envPath);
         expect($envContent)
             ->toContain('FORGE_API_TOKEN=test-token')
+            ->toContain('FORGE_ORGANIZATION=test-org')
             ->toContain('FORGE_SERVER_ID=123')
             ->toContain('FORGE_REVIEW_DOMAIN=review.test.com')
             ->toContain('FORGE_GIT_PROVIDER=GitLab')
@@ -79,6 +84,7 @@ test('não adiciona variáveis quando já existem no env', function (): void {
         $this->artisan('forge-test-branches:install')
             ->expectsConfirmation('Would you like to configure environment variables now?', 'yes')
             ->expectsQuestion('FORGE_API_TOKEN (Forge API Token)', 'new-token')
+            ->expectsQuestion('FORGE_ORGANIZATION (Organization slug on Forge)', 'test-org')
             ->expectsQuestion('FORGE_SERVER_ID (Server ID on Forge)', '123')
             ->expectsQuestion('FORGE_REVIEW_DOMAIN (Base domain for review apps)', 'new.test.com')
             ->expectsChoice('FORGE_GIT_PROVIDER (Git Provider)', 'GitLab', ['Bitbucket', 'GitHub', 'GitLab', 'bitbucket', 'github', 'gitlab'])
@@ -106,6 +112,7 @@ test('gera webhook secret automaticamente quando vazio', function (): void {
         $this->artisan('forge-test-branches:install')
             ->expectsConfirmation('Would you like to configure environment variables now?', 'yes')
             ->expectsQuestion('FORGE_API_TOKEN (Forge API Token)', 'test-token')
+            ->expectsQuestion('FORGE_ORGANIZATION (Organization slug on Forge)', 'test-org')
             ->expectsQuestion('FORGE_SERVER_ID (Server ID on Forge)', '123')
             ->expectsQuestion('FORGE_REVIEW_DOMAIN (Base domain for review apps)', 'review.test.com')
             ->expectsChoice('FORGE_GIT_PROVIDER (Git Provider)', 'GitLab', ['Bitbucket', 'GitHub', 'GitLab', 'bitbucket', 'github', 'gitlab'])

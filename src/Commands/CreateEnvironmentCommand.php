@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Ddr\ForgeTestBranches\Commands;
 
 use Ddr\ForgeTestBranches\Data\EnvironmentData;
+use Ddr\ForgeTestBranches\Exceptions\ConfigurationException;
 use Ddr\ForgeTestBranches\Services\{BranchPatternMatcher, EnvironmentBuilder};
 use Illuminate\Console\Command;
 use Throwable;
@@ -15,7 +16,7 @@ class CreateEnvironmentCommand extends Command
 
     protected $description = 'Creates a review environment for the specified branch';
 
-    public function handle(EnvironmentBuilder $builder, BranchPatternMatcher $patternMatcher): int
+    public function handle(BranchPatternMatcher $patternMatcher): int
     {
         $branch = $this->option('branch') ?? getenv('CI_COMMIT_REF_NAME') ?: null;
 
@@ -29,6 +30,14 @@ class CreateEnvironmentCommand extends Command
             $this->warn("Branch does not match allowed patterns: {$branch}");
 
             return self::SUCCESS;
+        }
+
+        try {
+            $builder = $this->laravel->make(EnvironmentBuilder::class);
+        } catch (ConfigurationException $configurationException) {
+            $this->error("Configuration error: {$configurationException->getMessage()}");
+
+            return self::FAILURE;
         }
 
         $existingEnvironment = $builder->find($branch);

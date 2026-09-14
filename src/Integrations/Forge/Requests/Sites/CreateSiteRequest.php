@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Ddr\ForgeTestBranches\Integrations\Forge\Requests\Sites;
 
 use Ddr\ForgeTestBranches\Data\{CreateSiteData, SiteData};
+use Ddr\ForgeTestBranches\Integrations\Forge\Concerns\ParsesJsonApiResponses;
 use Saloon\Contracts\Body\HasBody;
 use Saloon\Enums\Method;
 use Saloon\Http\{Request, Response};
@@ -13,6 +14,7 @@ use Saloon\Traits\Body\HasJsonBody;
 class CreateSiteRequest extends Request implements HasBody
 {
     use HasJsonBody;
+    use ParsesJsonApiResponses;
 
     protected Method $method = Method::POST;
 
@@ -29,7 +31,7 @@ class CreateSiteRequest extends Request implements HasBody
 
     public function createDtoFromResponse(Response $response): SiteData
     {
-        return SiteData::from(array_merge($response->json('site'), ['server_id' => $this->serverId]));
+        return $this->dtoFromResponse($response, SiteData::class, ['server_id' => $this->serverId]);
     }
 
     /**

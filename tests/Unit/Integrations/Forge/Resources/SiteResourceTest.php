@@ -2,65 +2,31 @@
 
 declare(strict_types=1);
 
-use Ddr\ForgeTestBranches\Data\{CreateSiteData, InstallGitRepositoryData, SiteData};
+use Ddr\ForgeTestBranches\Data\{CreateSiteData, SiteData};
+use Ddr\ForgeTestBranches\Exceptions\{ResourceFailedException, ResourceTimeoutException};
 use Ddr\ForgeTestBranches\Integrations\Forge\ForgeConnector;
+use Ddr\ForgeTestBranches\Integrations\Forge\Requests\Sites\{CreateSiteRequest, DeleteSiteRequest, DeploySiteRequest, EnableQuickDeployRequest, GetEnvironmentFileRequest, GetSiteRequest, ListSitesRequest, UpdateDeploymentScriptRequest, UpdateEnvironmentFileRequest};
 use Ddr\ForgeTestBranches\Integrations\Forge\Resources\SiteResource;
+use Illuminate\Support\Sleep;
 use Saloon\Http\Faking\{MockClient, MockResponse};
-use Ddr\ForgeTestBranches\Integrations\Forge\Requests\Sites\{CreateSiteRequest, DeleteSiteRequest, DeploySiteRequest, EnableQuickDeployRequest, GetEnvironmentRequest, GetSiteRequest, InstallGitRepositoryRequest, ListSitesRequest, UpdateDeploymentScriptRequest, UpdateEnvironmentRequest};
 
-/** @return array<string, mixed> */
-function makeSitePayload(int $id = 100, string $name = 'test.example.com'): array
+function makeSiteResource(MockClient $mockClient): SiteResource
 {
-    return [
-        'id' => $id,
-        'name' => $name,
-        'aliases' => null,
-        'directory' => '/public',
-        'wildcards' => false,
-        'status' => 'installed',
-        'repository' => 'user/repo',
-        'repository_provider' => 'gitlab',
-        'repository_branch' => 'main',
-        'repository_status' => 'installed',
-        'quick_deploy' => true,
-        'deployment_status' => null,
-        'project_type' => 'php',
-        'app' => null,
-        'app_status' => null,
-        'hipchat_room' => null,
-        'slack_channel' => null,
-        'telegram_chat_id' => null,
-        'telegram_chat_title' => null,
-        'teams_webhook_url' => null,
-        'discord_webhook_url' => null,
-        'username' => 'forge',
-        'balancing_status' => null,
-        'created_at' => '2024-01-01 00:00:00',
-        'deployment_url' => null,
-        'is_secured' => false,
-        'php_version' => 'php84',
-        'tags' => null,
-        'failure_deployment_emails' => null,
-        'telegram_secret' => null,
-        'web_directory' => '/public',
-    ];
+    $connector = new ForgeConnector('test-token', 'test-org');
+    $connector->withMockClient($mockClient);
+
+    return new SiteResource($connector);
 }
 
 test('lista sites do servidor', function (): void {
     $mockClient = new MockClient([
-        ListSitesRequest::class => MockResponse::make([
-            'sites' => [
-                makeSitePayload(1, 'site1.example.com'),
-                makeSitePayload(2, 'site2.example.com'),
-            ],
-        ]),
+        ListSitesRequest::class => MockResponse::make(forgeCollection([
+            forgeResource('sites', 1, forgeSiteAttributes('site1.example.com')),
+            forgeResource('sites', 2, forgeSiteAttributes('site2.example.com')),
+        ])),
     ]);
 
-    $connector = new ForgeConnector('test-token');
-    $connector->withMockClient($mockClient);
-
-    $resource = new SiteResource($connector);
-    $result = $resource->list(123);
+    $result = makeSiteResource($mockClient)->list(123);
 
     expect($result)->toHaveCount(2)
         ->and($result[0])->toBeInstanceOf(SiteData::class)
@@ -72,208 +38,202 @@ test('lista sites do servidor', function (): void {
 
 test('obtém site por id', function (): void {
     $mockClient = new MockClient([
-        GetSiteRequest::class => MockResponse::make([
-            'site' => makeSitePayload(456, 'test.example.com'),
-        ]),
+        GetSiteRequest::class => MockResponse::make(forgeDocument(forgeResource('sites', 456, forgeSiteAttributes('test.example.com')))),
     ]);
 
-    $connector = new ForgeConnector('test-token');
-    $connector->withMockClient($mockClient);
-
-    $resource = new SiteResource($connector);
-    $result = $resource->get(123, 456);
+    $result = makeSiteResource($mockClient)->get(123, 456);
 
     expect($result)->toBeInstanceOf(SiteData::class)
         ->id->toBe(456)
+        ->serverId->toBe(123)
         ->name->toBe('test.example.com');
 });
 
-test('encontra site pelo domínio', function (): void {
+test('encontra site pelo domínio usando filtro por nome', function (): void {
     $mockClient = new MockClient([
-        ListSitesRequest::class => MockResponse::make([
-            'sites' => [
-                makeSitePayload(1, 'site1.example.com'),
-                makeSitePayload(2, 'target.example.com'),
-            ],
-        ]),
+        ListSitesRequest::class => MockResponse::make(forgeCollection([
+            forgeResource('sites', 1, forgeSiteAttributes('sub.target.example.com')),
+            forgeResource('sites', 2, forgeSiteAttributes('target.example.com')),
+        ])),
     ]);
 
-    $connector = new ForgeConnector('test-token');
-    $connector->withMockClient($mockClient);
-
-    $resource = new SiteResource($connector);
-    $result = $resource->findByDomain(123, 'target.example.com');
+    $result = makeSiteResource($mockClient)->findByName(123, 'target.example.com');
 
     expect($result)->toBeInstanceOf(SiteData::class)
         ->id->toBe(2)
-        ->name->toBe('target.example.com');
+        ->name->toBe('target.example.com')
+        ->and($mockClient->getLastPendingRequest()->query()->get('filter[name]'))->toBe('target.example.com');
 });
 
 test('retorna null quando site não é encontrado pelo domínio', function (): void {
     $mockClient = new MockClient([
-        ListSitesRequest::class => MockResponse::make([
-            'sites' => [
-                makeSitePayload(1, 'site1.example.com'),
-            ],
-        ]),
+        ListSitesRequest::class => MockResponse::make(forgeCollection([])),
     ]);
 
-    $connector = new ForgeConnector('test-token');
-    $connector->withMockClient($mockClient);
-
-    $resource = new SiteResource($connector);
-
-    expect($resource->findByDomain(123, 'nonexistent.example.com'))->toBeNull();
+    expect(makeSiteResource($mockClient)->findByName(123, 'nonexistent.example.com'))->toBeNull();
 });
 
-test('aguarda instalação do repositório com sucesso', function (): void {
+test('aguarda instalação do site e do repositório, ignorando o status de deploy', function (): void {
+    Sleep::fake();
+
     $mockClient = new MockClient([
-        MockResponse::make(['site' => array_merge(makeSitePayload(), ['repository_status' => 'installing'])]),
-        MockResponse::make(['site' => array_merge(makeSitePayload(), ['repository_status' => 'installed'])]),
+        MockResponse::make(forgeDocument(forgeResource('sites', 100, forgeSiteAttributes('test.example.com', ['status' => 'creating'])))),
+        MockResponse::make(forgeDocument(forgeResource('sites', 100, forgeSiteAttributes('test.example.com', [
+            'repository' => ['provider' => 'gitlab', 'url' => 'user/repo', 'branch' => 'main', 'status' => 'installing'],
+        ])))),
+        MockResponse::make(forgeDocument(forgeResource('sites', 100, forgeSiteAttributes('test.example.com', [
+            'status' => 'deploying',
+            'deployment_status' => 'deploying',
+        ])))),
     ]);
 
-    $connector = new ForgeConnector('test-token');
-    $connector->withMockClient($mockClient);
-
-    $resource = new SiteResource($connector);
-    $result = $resource->waitForRepositoryInstallation(123, 100, 3, 0);
+    $result = makeSiteResource($mockClient)->waitForInstallation(123, 100, 5, 2);
 
     expect($result)->toBeInstanceOf(SiteData::class)
+        ->status->toBe('deploying')
         ->repositoryStatus->toBe('installed');
+
+    $mockClient->assertSentCount(3);
+    Sleep::assertSequence([Sleep::for(2)->seconds(), Sleep::for(2)->seconds()]);
 });
 
-test('lança exceção quando instalação do repositório expira', function (): void {
+test('lança exceção quando instalação do site expira', function (): void {
+    Sleep::fake();
+
     $mockClient = new MockClient([
-        MockResponse::make(['site' => array_merge(makeSitePayload(), ['repository_status' => 'installing'])]),
+        MockResponse::make(forgeDocument(forgeResource('sites', 100, forgeSiteAttributes('test.example.com', ['status' => 'installing'])))),
+        MockResponse::make(forgeDocument(forgeResource('sites', 100, forgeSiteAttributes('test.example.com', ['status' => 'installing'])))),
+        MockResponse::make(forgeDocument(forgeResource('sites', 100, forgeSiteAttributes('test.example.com', ['status' => 'installing'])))),
     ]);
 
-    $connector = new ForgeConnector('test-token');
-    $connector->withMockClient($mockClient);
+    $action = fn (): SiteData => makeSiteResource($mockClient)->waitForInstallation(123, 100, 3, 1);
 
-    $resource = new SiteResource($connector);
-    $resource->waitForRepositoryInstallation(123, 100, 1, 0);
-})->throws(RuntimeException::class, 'Timeout waiting for repository installation');
+    expect($action)->toThrow(ResourceTimeoutException::class, 'Timeout waiting for site installation (site 100) after 3 attempts');
+    $mockClient->assertSentCount(3);
+});
+
+test('lança exceção imediatamente quando a instalação do site falha', function (string $status): void {
+    Sleep::fake();
+
+    $mockClient = new MockClient([
+        MockResponse::make(forgeDocument(forgeResource('sites', 100, forgeSiteAttributes('test.example.com', ['status' => $status])))),
+    ]);
+
+    $action = fn (): SiteData => makeSiteResource($mockClient)->waitForInstallation(123, 100, 10, 5);
+
+    expect($action)->toThrow(ResourceFailedException::class);
+    $mockClient->assertSentCount(1);
+    Sleep::assertNeverSlept();
+})->with([
+    'falhou' => ['failed'],
+    'sendo removido' => ['removing'],
+    'sendo desinstalado' => ['uninstalling'],
+]);
 
 test('cria site e retorna SiteData', function (): void {
     $mockClient = new MockClient([
-        CreateSiteRequest::class => MockResponse::make([
-            'site' => makeSitePayload(200, 'new.example.com'),
-        ]),
+        CreateSiteRequest::class => MockResponse::make(forgeDocument(forgeResource('sites', 200, forgeSiteAttributes('new.example.com', ['status' => 'creating']))), 202),
     ]);
 
-    $connector = new ForgeConnector('test-token');
-    $connector->withMockClient($mockClient);
-
-    $resource = new SiteResource($connector);
-    $result = $resource->create(123, new CreateSiteData(domain: 'new.example.com', projectType: 'php'));
+    $result = makeSiteResource($mockClient)->create(123, new CreateSiteData(name: 'new.example.com', type: 'php'));
 
     expect($result)->toBeInstanceOf(SiteData::class)
         ->id->toBe(200)
-        ->name->toBe('new.example.com');
-});
-
-test('instala repositório git no site', function (): void {
-    $mockClient = new MockClient([
-        InstallGitRepositoryRequest::class => MockResponse::make([
-            'site' => array_merge(makeSitePayload(), ['repository_status' => 'installing']),
-        ]),
-    ]);
-
-    $connector = new ForgeConnector('test-token');
-    $connector->withMockClient($mockClient);
-
-    $resource = new SiteResource($connector);
-    $result = $resource->installGitRepository(
-        123,
-        100,
-        new InstallGitRepositoryData(provider: 'gitlab', repository: 'user/repo', branch: 'main')
-    );
-
-    expect($result)->toBeInstanceOf(SiteData::class)
-        ->repositoryStatus->toBe('installing');
+        ->name->toBe('new.example.com')
+        ->status->toBe('creating');
 });
 
 test('deleta site com sucesso', function (): void {
     $mockClient = new MockClient([
-        DeleteSiteRequest::class => MockResponse::make([]),
+        DeleteSiteRequest::class => MockResponse::make('', 202),
     ]);
 
-    $connector = new ForgeConnector('test-token');
-    $connector->withMockClient($mockClient);
-
-    $resource = new SiteResource($connector);
-    $resource->delete(123, 456);
+    makeSiteResource($mockClient)->delete(123, 456);
 
     $mockClient->assertSent(DeleteSiteRequest::class);
+    expect($mockClient->getLastPendingRequest()->getUrl())->toBe('https://forge.laravel.com/api/orgs/test-org/servers/123/sites/456');
 });
 
 test('executa deploy do site com sucesso', function (): void {
     $mockClient = new MockClient([
-        DeploySiteRequest::class => MockResponse::make([]),
+        DeploySiteRequest::class => MockResponse::make(forgeDocument(forgeResource('deployments', 99, ['status' => 'queued'])), 202),
     ]);
 
-    $connector = new ForgeConnector('test-token');
-    $connector->withMockClient($mockClient);
-
-    $resource = new SiteResource($connector);
-    $resource->deploy(123, 456);
+    makeSiteResource($mockClient)->deploy(123, 456);
 
     $mockClient->assertSent(DeploySiteRequest::class);
+    expect($mockClient->getLastPendingRequest()->getUrl())->toBe('https://forge.laravel.com/api/orgs/test-org/servers/123/sites/456/deployments');
 });
 
 test('atualiza script de deploy', function (): void {
     $mockClient = new MockClient([
-        UpdateDeploymentScriptRequest::class => MockResponse::make([]),
+        UpdateDeploymentScriptRequest::class => MockResponse::make(forgeDocument(forgeResource('deploymentScripts', 456, ['content' => 'git pull', 'auto_source' => false]))),
     ]);
 
-    $connector = new ForgeConnector('test-token');
-    $connector->withMockClient($mockClient);
-
-    $resource = new SiteResource($connector);
-    $resource->updateDeploymentScript(123, 456, 'cd /home/forge && git pull');
+    makeSiteResource($mockClient)->updateDeploymentScript(123, 456, 'cd /home/forge && git pull');
 
     $mockClient->assertSent(UpdateDeploymentScriptRequest::class);
+    expect($mockClient->getLastPendingRequest())
+        ->getUrl()->toBe('https://forge.laravel.com/api/orgs/test-org/servers/123/sites/456/deployments/script')
+        ->body()->all()->toBe(['content' => 'cd /home/forge && git pull']);
 });
 
-test('habilita quick deploy', function (): void {
+test('habilita push to deploy', function (): void {
     $mockClient = new MockClient([
-        EnableQuickDeployRequest::class => MockResponse::make([]),
+        EnableQuickDeployRequest::class => MockResponse::make('', 202),
     ]);
 
-    $connector = new ForgeConnector('test-token');
-    $connector->withMockClient($mockClient);
-
-    $resource = new SiteResource($connector);
-    $resource->enableQuickDeploy(123, 456);
+    makeSiteResource($mockClient)->enableQuickDeploy(123, 456);
 
     $mockClient->assertSent(EnableQuickDeployRequest::class);
+    expect($mockClient->getLastPendingRequest()->getUrl())->toBe('https://forge.laravel.com/api/orgs/test-org/servers/123/sites/456/deployments/push-to-deploy');
 });
 
-test('obtém variáveis de ambiente do site', function (): void {
+test('obtém o arquivo .env do site', function (): void {
     $mockClient = new MockClient([
-        GetEnvironmentRequest::class => MockResponse::make('APP_ENV=production'),
+        GetEnvironmentFileRequest::class => MockResponse::make(forgeDocument(forgeResource('environments', 456, ['content' => 'APP_ENV=production']))),
     ]);
 
-    $connector = new ForgeConnector('test-token');
-    $connector->withMockClient($mockClient);
+    $result = makeSiteResource($mockClient)->getEnvironmentFile(123, 456);
 
-    $resource = new SiteResource($connector);
-    $result = $resource->getEnvironment(123, 456);
-
-    expect($result)->toBe('APP_ENV=production');
-    $mockClient->assertSent(GetEnvironmentRequest::class);
+    expect($result)->toBe('APP_ENV=production')
+        ->and($mockClient->getLastPendingRequest()->getUrl())->toBe('https://forge.laravel.com/api/orgs/test-org/servers/123/sites/456/environment');
 });
 
-test('atualiza variáveis de ambiente do site', function (): void {
+test('atualiza o arquivo .env do site', function (): void {
     $mockClient = new MockClient([
-        UpdateEnvironmentRequest::class => MockResponse::make([]),
+        UpdateEnvironmentFileRequest::class => MockResponse::make('', 202),
     ]);
 
-    $connector = new ForgeConnector('test-token');
-    $connector->withMockClient($mockClient);
+    makeSiteResource($mockClient)->updateEnvironmentFile(123, 456, 'APP_ENV=staging');
 
-    $resource = new SiteResource($connector);
-    $resource->updateEnvironment(123, 456, 'APP_ENV=staging');
+    $mockClient->assertSent(UpdateEnvironmentFileRequest::class);
+    expect($mockClient->getLastPendingRequest())
+        ->getMethod()->value->toBe('PUT')
+        ->body()->all()->toBe(['environment' => 'APP_ENV=staging']);
+});
 
-    $mockClient->assertSent(UpdateEnvironmentRequest::class);
+test('aguarda o arquivo .env conter o valor esperado antes de prosseguir', function (): void {
+    Sleep::fake();
+
+    $mockClient = new MockClient([
+        MockResponse::make(forgeDocument(forgeResource('environments', 456, ['content' => 'APP_ENV=old']))),
+        MockResponse::make(forgeDocument(forgeResource('environments', 456, ['content' => "APP_ENV=staging\nDB_DATABASE=review_feat"]))),
+    ]);
+
+    $result = makeSiteResource($mockClient)->waitForEnvironmentFileContaining(123, 456, 'DB_DATABASE=review_feat', 5, 1);
+
+    expect($result)->toContain('DB_DATABASE=review_feat');
+});
+
+test('lança timeout se o arquivo .env nunca refletir a escrita', function (): void {
+    Sleep::fake();
+
+    $mockClient = new MockClient([
+        GetEnvironmentFileRequest::class => MockResponse::make(forgeDocument(forgeResource('environments', 456, ['content' => 'APP_ENV=old']))),
+    ]);
+
+    $action = fn (): string => makeSiteResource($mockClient)->waitForEnvironmentFileContaining(123, 456, 'DB_DATABASE=review_feat', 2, 1);
+
+    expect($action)->toThrow(ResourceTimeoutException::class);
 });

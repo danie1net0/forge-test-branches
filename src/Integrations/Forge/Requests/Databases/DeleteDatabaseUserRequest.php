@@ -13,12 +13,12 @@ class DeleteDatabaseUserRequest extends Request
 
     public function __construct(
         protected int $serverId,
-        protected int $userId,
+        protected int $databaseUserId,
     ) {
     }
 
     public function resolveEndpoint(): string
     {
-        return "/servers/{$this->serverId}/database-users/{$this->userId}";
+        return "/servers/{$this->serverId}/database/users/{$this->databaseUserId}";
     }
 }

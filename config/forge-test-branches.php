@@ -1,13 +1,19 @@
 <?php
 
+declare(strict_types=1);
+
 return [
     /*
     |--------------------------------------------------------------------------
     | Forge API Token
     |--------------------------------------------------------------------------
     |
-    | Laravel Forge API authentication token. Can be generated at:
-    | https://forge.laravel.com/user-profile/api
+    | Laravel Forge API (v2) authentication token. Can be generated at:
+    | https://forge.laravel.com/profile/api
+    |
+    | Required scopes: server:view, site:create, site:delete,
+    | site:manage-deploys, site:manage-environment, site:meta,
+    | site:manage-ssl, server:create-databases, server:delete-databases
     |
     */
 
@@ -15,11 +21,23 @@ return [
 
     /*
     |--------------------------------------------------------------------------
+    | Organization
+    |--------------------------------------------------------------------------
+    |
+    | The slug of the Forge organization that owns the server.
+    | It is returned by GET https://forge.laravel.com/api/orgs (attribute "slug").
+    |
+    */
+
+    'organization' => env('FORGE_ORGANIZATION'),
+
+    /*
+    |--------------------------------------------------------------------------
     | Server ID
     |--------------------------------------------------------------------------
     |
     | The Forge server ID where review environments will be created.
-    | Can be found in the server URL: forge.laravel.com/servers/{id}
+    | It is returned by GET https://forge.laravel.com/api/orgs/{organization}/servers.
     |
     */
 
@@ -105,10 +123,14 @@ return [
     |
     | Site configuration to be created on Forge.
     |
-    | - php_version: PHP version (php81, php82, php83, php84)
-    | - project_type: Project type (php, html, symfony, symfony_dev, symfony_four)
+    | - php_version: PHP version (php81, php82, php83, php84, php85)
+    | - project_type: Site type (laravel, php, symfony, statamic, static-html, other)
     | - directory: Site public directory
     | - isolated: Whether the site should run in isolated mode (dedicated user)
+    | - zero_downtime_deployments: Whether to enable Forge's zero-downtime
+    |   deployments. Forge enables this by default for new sites, but the
+    |   generated deploy script does not use the $CREATE_RELEASE() /
+    |   $ACTIVATE_RELEASE() macros it requires, so it defaults to false here.
     |
     */
 
@@ -117,6 +139,7 @@ return [
         'project_type' => env('FORGE_PROJECT_TYPE', 'php'),
         'directory' => env('FORGE_WEB_DIRECTORY', '/public'),
         'isolated' => env('FORGE_ISOLATED', false),
+        'zero_downtime_deployments' => env('FORGE_ZERO_DOWNTIME_DEPLOYMENTS', false),
     ],
 
     /*
@@ -189,7 +212,10 @@ return [
     | SSL certificate configuration for review environments.
     |
     | - enabled: Whether to automatically obtain SSL certificates (default: true)
-    | - type: Certificate type (letsencrypt)
+    | - verification_method: Let's Encrypt verification method (http-01 or
+    |   dns-01). http-01 works out of the box; dns-01 requires a CNAME
+    |   pointing the domain's verify-* subdomain at Forge, which this
+    |   package does not create automatically.
     |
     | When enabled, a Let's Encrypt SSL certificate will be obtained
     | automatically when creating a new review environment.
@@ -198,6 +224,7 @@ return [
 
     'ssl' => [
         'enabled' => env('FORGE_SSL_ENABLED', true),
+        'verification_method' => env('FORGE_SSL_VERIFICATION_METHOD', 'http-01'),
     ],
 
     /*

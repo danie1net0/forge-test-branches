@@ -7,13 +7,14 @@ namespace Ddr\ForgeTestBranches\Http\Controllers;
 use Ddr\ForgeTestBranches\Data\EnvironmentData;
 use Ddr\ForgeTestBranches\Logger;
 use Ddr\ForgeTestBranches\Services\EnvironmentBuilder;
+use Illuminate\Contracts\Container\Container;
 use Illuminate\Http\{JsonResponse, Request};
 use Illuminate\Routing\Controller;
 use Throwable;
 
 class WebhookController extends Controller
 {
-    public function handle(Request $request, EnvironmentBuilder $builder, Logger $logger): JsonResponse
+    public function handle(Request $request, Container $container, Logger $logger): JsonResponse
     {
         $eventHeader = $request->header('X-Gitlab-Event') ?? $request->header('X-GitHub-Event') ?? 'unknown';
         $logger->info('Webhook received', [
@@ -40,6 +41,13 @@ class WebhookController extends Controller
         $provider = $this->isGitHubRequest($request) ? 'github' : 'gitlab';
         $logger->info('Branch deletion detected', ['branch' => $branch, 'provider' => $provider]);
 
+        if (! $this->isPackageConfigured()) {
+            $logger->error('Webhook: package misconfigured', ['error' => 'FORGE_API_TOKEN or FORGE_ORGANIZATION missing']);
+
+            return response()->json(['message' => 'Package misconfigured'], 500);
+        }
+
+        $builder = $container->make(EnvironmentBuilder::class);
         $environment = $builder->find($branch);
 
         if (! $environment instanceof EnvironmentData) {
@@ -72,6 +80,14 @@ class WebhookController extends Controller
     private function isGitHubRequest(Request $request): bool
     {
         return $request->hasHeader('X-GitHub-Event');
+    }
+
+    private function isPackageConfigured(): bool
+    {
+        $token = config('forge-test-branches.forge_api_token');
+        $organization = config('forge-test-branches.organization');
+
+        return is_string($token) && $token !== '' && is_string($organization) && $organization !== '';
     }
 
     /** @param array<string, mixed> $payload */

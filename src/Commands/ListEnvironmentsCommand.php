@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Ddr\ForgeTestBranches\Commands;
 
 use Ddr\ForgeTestBranches\Data\EnvironmentData;
+use Ddr\ForgeTestBranches\Exceptions\ConfigurationException;
 use Ddr\ForgeTestBranches\Services\{EnvironmentBuilder, RemoteBranchResolver};
 use Illuminate\Console\Command;
 use Throwable;
@@ -18,9 +19,17 @@ class ListEnvironmentsCommand extends Command
 
     protected $description = 'Lists review environments on the server';
 
-    public function handle(EnvironmentBuilder $builder, RemoteBranchResolver $remoteBranchResolver): int
+    public function handle(RemoteBranchResolver $remoteBranchResolver): int
     {
         $this->info('Fetching review environments...');
+
+        try {
+            $builder = $this->laravel->make(EnvironmentBuilder::class);
+        } catch (ConfigurationException $configurationException) {
+            $this->error("Configuration error: {$configurationException->getMessage()}");
+
+            return self::FAILURE;
+        }
 
         try {
             $environments = $builder->listAll();

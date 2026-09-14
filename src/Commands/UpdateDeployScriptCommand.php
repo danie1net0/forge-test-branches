@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Ddr\ForgeTestBranches\Commands;
 
 use Ddr\ForgeTestBranches\Data\EnvironmentData;
+use Ddr\ForgeTestBranches\Exceptions\ConfigurationException;
 use Ddr\ForgeTestBranches\Integrations\Forge\ForgeClient;
 use Ddr\ForgeTestBranches\Services\{DeploymentScriptBuilder, EnvironmentBuilder};
 use Illuminate\Console\Command;
@@ -16,15 +17,21 @@ class UpdateDeployScriptCommand extends Command
 
     protected $description = 'Updates the deploy script for an existing review environment';
 
-    public function handle(
-        EnvironmentBuilder $builder,
-        DeploymentScriptBuilder $scriptBuilder,
-        ForgeClient $forge,
-    ): int {
+    public function handle(DeploymentScriptBuilder $scriptBuilder): int
+    {
         $branch = $this->option('branch') ?? getenv('CI_COMMIT_REF_NAME') ?: null;
 
         if (! is_string($branch)) {
             $this->error('Branch not specified. Use --branch=branch-name or set CI_COMMIT_REF_NAME');
+
+            return self::FAILURE;
+        }
+
+        try {
+            $builder = $this->laravel->make(EnvironmentBuilder::class);
+            $forge = $this->laravel->make(ForgeClient::class);
+        } catch (ConfigurationException $configurationException) {
+            $this->error("Configuration error: {$configurationException->getMessage()}");
 
             return self::FAILURE;
         }

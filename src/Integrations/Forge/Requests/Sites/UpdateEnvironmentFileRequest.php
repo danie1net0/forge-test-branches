@@ -9,7 +9,7 @@ use Saloon\Enums\Method;
 use Saloon\Http\Request;
 use Saloon\Traits\Body\HasJsonBody;
 
-class UpdateEnvironmentRequest extends Request implements HasBody
+class UpdateEnvironmentFileRequest extends Request implements HasBody
 {
     use HasJsonBody;
 
@@ -24,7 +24,7 @@ class UpdateEnvironmentRequest extends Request implements HasBody
 
     public function resolveEndpoint(): string
     {
-        return "/servers/{$this->serverId}/sites/{$this->siteId}/env";
+        return "/servers/{$this->serverId}/sites/{$this->siteId}/environment";
     }
 
     /**
@@ -32,6 +32,6 @@ class UpdateEnvironmentRequest extends Request implements HasBody
      */
     protected function defaultBody(): array
     {
-        return ['content' => $this->content];
+        return ['environment' => $this->content];
     }
 }

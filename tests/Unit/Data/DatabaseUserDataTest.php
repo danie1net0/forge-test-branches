@@ -10,26 +10,31 @@ test('creates instance with all parameters', function (): void {
         serverId: 123,
         name: 'review_user',
         status: 'installed',
-        createdAt: '2024-01-01 00:00:00',
-        databases: [789, 790],
+        createdAt: '2025-07-29T09:00:00Z',
     );
 
     expect($data)
         ->id->toBe(101)
         ->serverId->toBe(123)
         ->name->toBe('review_user')
+        ->getName()->toBe('review_user')
         ->status->toBe('installed')
-        ->databases->toBe([789, 790]);
+        ->isInstalled()->toBeTrue();
 });
 
-test('creates instance without databases', function (): void {
+test('indica se o usuário do banco está instalado', function (string $status, bool $expected): void {
     $data = new DatabaseUserData(
         id: 101,
         serverId: 123,
         name: 'review_user',
-        status: 'installed',
-        createdAt: '2024-01-01 00:00:00',
+        status: $status,
+        createdAt: '2025-07-29T09:00:00Z',
     );
 
-    expect($data->databases)->toBe([]);
-});
+    expect($data->isInstalled())->toBe($expected);
+})->with([
+    'instalado' => ['installed', true],
+    'instalando' => ['installing', false],
+    'atualizando' => ['updating', false],
+    'removendo' => ['removing', false],
+]);
