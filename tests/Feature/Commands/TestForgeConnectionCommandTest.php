@@ -89,8 +89,7 @@ test('exibe erro de configuração antes de tentar conectar quando a organizaç�
     config(['forge-test-branches.organization' => null]);
 
     $this->artisan('forge-test-branches:test-connection')
-        ->expectsOutputToContain('Configuration error!')
-        ->expectsOutputToContain('Forge organization not configured')
+        ->expectsOutputToContain('Configuration error: Forge organization not configured')
         ->assertFailed();
 });
 

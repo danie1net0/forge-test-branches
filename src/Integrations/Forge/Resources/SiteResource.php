@@ -121,6 +121,7 @@ class SiteResource
             maxAttempts: $maxAttempts,
             sleepSeconds: $sleepSeconds,
             resourceLabel: "environment file update (site {$siteId})",
+            describe: fn (string $content): string => 'content length=' . mb_strlen($content) . " bytes, missing=\"{$expectedSubstring}\"",
         );
     }
 }

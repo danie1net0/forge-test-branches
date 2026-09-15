@@ -2,12 +2,14 @@
 
 declare(strict_types=1);
 
+use Saloon\Http\Request;
 use Ddr\ForgeTestBranches\Data\{CertificateData, DomainData};
-use Ddr\ForgeTestBranches\Exceptions\{DomainNotFoundException, ResourceFailedException, ResourceTimeoutException};
+use Ddr\ForgeTestBranches\Exceptions\{ResourceFailedException, ResourceTimeoutException};
 use Ddr\ForgeTestBranches\Integrations\Forge\ForgeConnector;
-use Ddr\ForgeTestBranches\Integrations\Forge\Requests\Domains\{GetCertificateRequest, ListDomainsRequest, ObtainLetsEncryptCertificateRequest};
+use Ddr\ForgeTestBranches\Integrations\Forge\Requests\Domains\{GetCertificateRequest, GetDomainRequest, ListDomainsRequest, ObtainLetsEncryptCertificateRequest};
 use Ddr\ForgeTestBranches\Integrations\Forge\Resources\DomainResource;
 use Illuminate\Support\Sleep;
+use Saloon\Exceptions\Request\Statuses\NotFoundException;
 use Saloon\Http\Faking\{MockClient, MockResponse};
 
 function makeDomainResource(MockClient $mockClient): DomainResource
@@ -59,45 +61,60 @@ test('retorna null quando domínio não é encontrado', function (): void {
     expect(makeDomainResource($mockClient)->findByName(123, 456, 'feat.review.example.com'))->toBeNull();
 });
 
-test('aguarda o domínio ficar habilitado', function (): void {
+test('obtém um domínio por id', function (): void {
+    $mockClient = new MockClient([
+        GetDomainRequest::class => MockResponse::make(forgeDocument(forgeResource('domainRecords', 10, forgeDomainAttributes('feat.review.example.com')))),
+    ]);
+
+    $domain = makeDomainResource($mockClient)->get(123, 456, 10);
+
+    expect($domain)->toBeInstanceOf(DomainData::class)
+        ->id->toBe(10)
+        ->serverId->toBe(123)
+        ->siteId->toBe(456)
+        ->and($mockClient->getLastPendingRequest()->getUrl())->toBe('https://forge.laravel.com/api/orgs/test-org/servers/123/sites/456/domains/10');
+});
+
+test('aguarda o domínio ficar habilitado, buscando por id a cada tentativa', function (): void {
     Sleep::fake();
 
     $mockClient = new MockClient([
-        MockResponse::make(forgeCollection([forgeResource('domainRecords', 10, forgeDomainAttributes('feat.review.example.com', ['status' => 'connecting']))])),
-        MockResponse::make(forgeCollection([forgeResource('domainRecords', 10, forgeDomainAttributes('feat.review.example.com', ['status' => 'enabled']))])),
+        MockResponse::make(forgeDocument(forgeResource('domainRecords', 10, forgeDomainAttributes('feat.review.example.com', ['status' => 'connecting'])))),
+        MockResponse::make(forgeDocument(forgeResource('domainRecords', 10, forgeDomainAttributes('feat.review.example.com', ['status' => 'enabled'])))),
     ]);
 
-    $domain = makeDomainResource($mockClient)->waitForEnabled(123, 456, 10, 'feat.review.example.com', 5, 1);
+    $domain = makeDomainResource($mockClient)->waitForEnabled(123, 456, 10, 5, 1);
 
     expect($domain)->toBeInstanceOf(DomainData::class)
         ->status->toBe('enabled');
 
     Sleep::assertSequence([Sleep::for(1)->second()]);
+    $mockClient->assertSentCount(2);
+    $mockClient->assertSent(fn (Request $request): bool => $request->resolveEndpoint() === '/servers/123/sites/456/domains/10');
 });
 
 test('lança exceção quando o domínio nunca fica habilitado', function (): void {
     Sleep::fake();
 
     $mockClient = new MockClient([
-        MockResponse::make(forgeCollection([forgeResource('domainRecords', 10, forgeDomainAttributes('feat.review.example.com', ['status' => 'connecting']))])),
-        MockResponse::make(forgeCollection([forgeResource('domainRecords', 10, forgeDomainAttributes('feat.review.example.com', ['status' => 'connecting']))])),
+        GetDomainRequest::class => MockResponse::make(forgeDocument(forgeResource('domainRecords', 10, forgeDomainAttributes('feat.review.example.com', ['status' => 'connecting'])))),
     ]);
 
-    $action = fn (): DomainData => makeDomainResource($mockClient)->waitForEnabled(123, 456, 10, 'feat.review.example.com', 2, 1);
+    $action = fn (): DomainData => makeDomainResource($mockClient)->waitForEnabled(123, 456, 10, 2, 1);
 
     expect($action)->toThrow(ResourceTimeoutException::class, 'Timeout waiting for domain activation (domain 10) after 2 attempts');
 });
 
-test('lança exceção quando o domínio some durante a espera', function (): void {
+test('propaga o erro da API quando o domínio some durante a espera', function (): void {
     Sleep::fake();
 
     $mockClient = new MockClient([
-        ListDomainsRequest::class => MockResponse::make(forgeCollection([])),
+        GetDomainRequest::class => MockResponse::make(['message' => 'Not Found'], 404),
     ]);
 
-    $action = fn (): DomainData => makeDomainResource($mockClient)->waitForEnabled(123, 456, 10, 'feat.review.example.com', 2, 1);
+    $action = fn (): DomainData => makeDomainResource($mockClient)->waitForEnabled(123, 456, 10, 2, 1);
 
-    expect($action)->toThrow(DomainNotFoundException::class, 'Domain not found on site: feat.review.example.com');
+    expect($action)->toThrow(NotFoundException::class);
 });
 
 test('solicita certificado lets encrypt para o domínio com verificação http-01 por padrão', function (): void {

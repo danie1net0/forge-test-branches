@@ -81,6 +81,25 @@ test('retorna ambiente não encontrado quando branch não existe', function (): 
         ->assertJson(['message' => 'Environment not found']);
 });
 
+test('retorna 500 sem consultar o ambiente quando o pacote está mal configurado', function (): void {
+    config(['forge-test-branches.organization' => null]);
+
+    postGitLabWebhook($this, [
+        'ref' => 'refs/heads/feat/whatever',
+        'after' => '0000000000000000000000000000000000000000',
+    ])
+        ->assertStatus(500)
+        ->assertJson(['message' => 'Package misconfigured']);
+});
+
+test('não retorna mal configurado para eventos que já foram ignorados antes de checar a config', function (): void {
+    config(['forge-test-branches.organization' => null]);
+
+    postGitLabWebhook($this, [], 'Merge Request Hook')
+        ->assertOk()
+        ->assertJson(['message' => 'Event ignored']);
+});
+
 test('destrói ambiente ao receber webhook de deleção', function (): void {
     $environment = makeWebhookEnvData('feat/to-destroy', 'feat-to-destroy');
 

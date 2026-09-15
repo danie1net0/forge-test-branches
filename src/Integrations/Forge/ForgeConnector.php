@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Ddr\ForgeTestBranches\Integrations\Forge;
 
 use Ddr\ForgeTestBranches\Integrations\Forge\Requests\PaginatedRequest;
+use Saloon\Enums\Method;
 use Saloon\Exceptions\Request\Statuses\TooManyRequestsException;
 use Saloon\Http\Auth\TokenAuthenticator;
 use Saloon\Http\{Connector, Request as SaloonRequest};
@@ -63,16 +64,27 @@ class ForgeConnector extends Connector
     }
 
     /**
-     * Only retry rate-limited (429) and server-side (5xx) failures. Client
-     * errors such as 404 or 422 are never transient and should fail fast.
+     * Only retry rate-limited (429) and server-side (5xx or network-level)
+     * failures. Client errors such as 404 or 422 are never transient and
+     * should fail fast.
+     *
+     * POST is the only non-idempotent verb this API uses (it creates a
+     * resource), so a 5xx or network failure there is ambiguous: the
+     * request may have been processed before the response was lost.
+     * Retrying could create a duplicate site, database or database user, so
+     * POST is only retried on 429, which is rejected before any processing.
      */
     public function handleRetry(FatalRequestException|RequestException $exception, SaloonRequest $request): bool
     {
-        if ($exception instanceof FatalRequestException) {
+        if ($exception instanceof TooManyRequestsException) {
             return true;
         }
 
-        if ($exception instanceof TooManyRequestsException) {
+        if ($request->getMethod() === Method::POST) {
+            return false;
+        }
+
+        if ($exception instanceof FatalRequestException) {
             return true;
         }
 

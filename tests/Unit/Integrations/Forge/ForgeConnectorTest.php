@@ -4,7 +4,9 @@ declare(strict_types=1);
 
 use Saloon\Http\Response;
 use Saloon\Exceptions\Request\Statuses\{ServiceUnavailableException, UnprocessableEntityException};
+use Ddr\ForgeTestBranches\Data\CreateDatabaseData;
 use Ddr\ForgeTestBranches\Integrations\Forge\ForgeConnector;
+use Ddr\ForgeTestBranches\Integrations\Forge\Requests\Databases\CreateDatabaseRequest;
 use Ddr\ForgeTestBranches\Integrations\Forge\Requests\Sites\ListSitesRequest;
 use Saloon\Http\Faking\{MockClient, MockResponse};
 
@@ -112,6 +114,27 @@ test('para de paginar quando o cursor volta a se repetir', function (): void {
     $mockClient->assertSentCount(2);
 });
 
+test('para de paginar ao atingir o limite de páginas mesmo sem repetir cursor', function (): void {
+    $responses = [];
+
+    for ($page = 1; $page <= 100; $page++) {
+        $responses[] = MockResponse::make(forgeCollection(
+            [forgeResource('sites', $page, forgeSiteAttributes("site{$page}.example.com"))],
+            nextCursor: "cursor-{$page}",
+        ));
+    }
+
+    $mockClient = new MockClient($responses);
+
+    $connector = new ForgeConnector('test-token', 'acme');
+    $connector->withMockClient($mockClient);
+
+    $sites = $connector->sendPaginated(new ListSitesRequest(123));
+
+    expect($sites)->toHaveCount(100);
+    $mockClient->assertSentCount(100);
+});
+
 test('tenta novamente quando a API responde 429', function (): void {
     $mockClient = new MockClient([
         MockResponse::make(['message' => 'Too Many Attempts.'], 429),
@@ -155,6 +178,38 @@ test('não tenta novamente em erros de cliente como 422', function (): void {
         ->toThrow(UnprocessableEntityException::class);
 
     $mockClient->assertSentCount(1);
+});
+
+test('não tenta novamente um POST em falha de servidor, para não criar recurso duplicado', function (): void {
+    $mockClient = new MockClient([
+        MockResponse::make(['message' => 'Service Unavailable'], 503),
+    ]);
+
+    $connector = new ForgeConnector('test-token', 'acme');
+    $connector->retryInterval = 1;
+    $connector->withMockClient($mockClient);
+
+    $request = new CreateDatabaseRequest(123, new CreateDatabaseData(name: 'test_db'));
+
+    expect(fn (): Response => $connector->send($request))
+        ->toThrow(ServiceUnavailableException::class);
+
+    $mockClient->assertSentCount(1);
+});
+
+test('tenta novamente um POST quando a API responde 429, que é rejeitado antes de processar', function (): void {
+    $mockClient = new MockClient([
+        MockResponse::make(['message' => 'Too Many Attempts.'], 429),
+        MockResponse::make(forgeDocument(forgeResource('databases', 1, forgeDatabaseAttributes('test_db'))), 202),
+    ]);
+
+    $connector = new ForgeConnector('test-token', 'acme');
+    $connector->retryInterval = 1;
+    $connector->withMockClient($mockClient);
+
+    $connector->send(new CreateDatabaseRequest(123, new CreateDatabaseData(name: 'test_db')));
+
+    $mockClient->assertSentCount(2);
 });
 
 test('desiste após esgotar as tentativas em falhas persistentes de servidor', function (): void {

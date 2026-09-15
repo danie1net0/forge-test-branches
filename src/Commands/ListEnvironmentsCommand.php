@@ -4,14 +4,16 @@ declare(strict_types=1);
 
 namespace Ddr\ForgeTestBranches\Commands;
 
+use Ddr\ForgeTestBranches\Commands\Concerns\ResolvesForgeDependencies;
 use Ddr\ForgeTestBranches\Data\EnvironmentData;
-use Ddr\ForgeTestBranches\Exceptions\ConfigurationException;
 use Ddr\ForgeTestBranches\Services\{EnvironmentBuilder, RemoteBranchResolver};
 use Illuminate\Console\Command;
 use Throwable;
 
 class ListEnvironmentsCommand extends Command
 {
+    use ResolvesForgeDependencies;
+
     protected $signature = 'forge-test-branches:list
         {--orphans : Show only orphaned environments (branch no longer exists on remote)}
         {--destroy-orphans : Destroy all orphaned environments}
@@ -23,11 +25,9 @@ class ListEnvironmentsCommand extends Command
     {
         $this->info('Fetching review environments...');
 
-        try {
-            $builder = $this->laravel->make(EnvironmentBuilder::class);
-        } catch (ConfigurationException $configurationException) {
-            $this->error("Configuration error: {$configurationException->getMessage()}");
+        $builder = $this->resolveOrFail(EnvironmentBuilder::class);
 
+        if ($builder === null) {
             return self::FAILURE;
         }
 

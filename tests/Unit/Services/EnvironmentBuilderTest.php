@@ -523,7 +523,7 @@ test('cria ambiente com certificado SSL no domínio do site quando habilitado', 
         ->andReturn($domainRecord);
     $mocks['domains']->shouldReceive('waitForEnabled')
         ->once()
-        ->with(12345, 100, 10, 'feat-ssl.review.example.com')
+        ->with(12345, 100, 10)
         ->andReturn($domainRecord);
     $mocks['domains']->shouldReceive('obtainLetsEncryptCertificate')
         ->once()

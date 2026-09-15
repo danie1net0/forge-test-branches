@@ -67,8 +67,6 @@ class SiteData extends Data implements HasNameAttribute
 
     public function isBeingRemoved(): bool
     {
-        $status = SiteStatus::tryFrom($this->status);
-
-        return $status === SiteStatus::REMOVING || $status === SiteStatus::UNINSTALLING;
+        return SiteStatus::tryFrom($this->status)?->isBeingRemoved() ?? false;
     }
 }

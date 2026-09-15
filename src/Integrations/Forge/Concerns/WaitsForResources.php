@@ -15,8 +15,8 @@ trait WaitsForResources
      *
      * @param Closure(): TResource $fetchResource
      * @param Closure(TResource): bool $isReady
-     * @param Closure(TResource): bool|null $hasFailed
-     * @param Closure(TResource): string|null $describe
+     * @param (Closure(TResource): bool)|null $hasFailed
+     * @param (Closure(TResource): string)|null $describe
      * @return TResource
      */
     protected function waitUntil(

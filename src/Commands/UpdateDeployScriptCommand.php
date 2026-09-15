@@ -4,8 +4,8 @@ declare(strict_types=1);
 
 namespace Ddr\ForgeTestBranches\Commands;
 
+use Ddr\ForgeTestBranches\Commands\Concerns\ResolvesForgeDependencies;
 use Ddr\ForgeTestBranches\Data\EnvironmentData;
-use Ddr\ForgeTestBranches\Exceptions\ConfigurationException;
 use Ddr\ForgeTestBranches\Integrations\Forge\ForgeClient;
 use Ddr\ForgeTestBranches\Services\{DeploymentScriptBuilder, EnvironmentBuilder};
 use Illuminate\Console\Command;
@@ -13,6 +13,8 @@ use Throwable;
 
 class UpdateDeployScriptCommand extends Command
 {
+    use ResolvesForgeDependencies;
+
     protected $signature = 'forge-test-branches:update-script {--branch= : Branch name}';
 
     protected $description = 'Updates the deploy script for an existing review environment';
@@ -27,12 +29,15 @@ class UpdateDeployScriptCommand extends Command
             return self::FAILURE;
         }
 
-        try {
-            $builder = $this->laravel->make(EnvironmentBuilder::class);
-            $forge = $this->laravel->make(ForgeClient::class);
-        } catch (ConfigurationException $configurationException) {
-            $this->error("Configuration error: {$configurationException->getMessage()}");
+        $builder = $this->resolveOrFail(EnvironmentBuilder::class);
 
+        if ($builder === null) {
+            return self::FAILURE;
+        }
+
+        $forge = $this->resolveOrFail(ForgeClient::class);
+
+        if ($forge === null) {
             return self::FAILURE;
         }
 

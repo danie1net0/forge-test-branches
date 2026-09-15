@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace Ddr\ForgeTestBranches\Commands;
 
-use Ddr\ForgeTestBranches\Exceptions\ConfigurationException;
+use Ddr\ForgeTestBranches\Commands\Concerns\ResolvesForgeDependencies;
 use Ddr\ForgeTestBranches\Integrations\Forge\ForgeClient;
 use Illuminate\Console\Command;
 use Saloon\Exceptions\Request\RequestException;
@@ -12,6 +12,8 @@ use Throwable;
 
 class TestForgeConnectionCommand extends Command
 {
+    use ResolvesForgeDependencies;
+
     protected $signature = 'forge-test-branches:test-connection';
 
     protected $description = 'Test Forge API connection and credentials';
@@ -21,12 +23,9 @@ class TestForgeConnectionCommand extends Command
         $this->info('Testing Forge API connection...');
         $this->newLine();
 
-        try {
-            $forge = $this->laravel->make(ForgeClient::class);
-        } catch (ConfigurationException $configurationException) {
-            $this->error('Configuration error!');
-            $this->line("  {$configurationException->getMessage()}");
+        $forge = $this->resolveOrFail(ForgeClient::class);
 
+        if ($forge === null) {
             return self::FAILURE;
         }
 

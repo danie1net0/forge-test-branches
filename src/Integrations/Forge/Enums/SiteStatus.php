@@ -40,4 +40,9 @@ enum SiteStatus: string
     {
         return in_array($this, self::FAILURE_STATUSES, true);
     }
+
+    public function isBeingRemoved(): bool
+    {
+        return $this === self::REMOVING || $this === self::UNINSTALLING;
+    }
 }

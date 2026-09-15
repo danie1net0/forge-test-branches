@@ -4,14 +4,16 @@ declare(strict_types=1);
 
 namespace Ddr\ForgeTestBranches\Commands;
 
+use Ddr\ForgeTestBranches\Commands\Concerns\ResolvesForgeDependencies;
 use Ddr\ForgeTestBranches\Data\EnvironmentData;
-use Ddr\ForgeTestBranches\Exceptions\ConfigurationException;
 use Ddr\ForgeTestBranches\Services\EnvironmentBuilder;
 use Illuminate\Console\Command;
 use Throwable;
 
 class DeployEnvironmentCommand extends Command
 {
+    use ResolvesForgeDependencies;
+
     protected $signature = 'forge-test-branches:deploy {--branch= : Branch name}';
 
     protected $description = 'Deploys to the review environment for the specified branch';
@@ -26,11 +28,9 @@ class DeployEnvironmentCommand extends Command
             return self::FAILURE;
         }
 
-        try {
-            $builder = $this->laravel->make(EnvironmentBuilder::class);
-        } catch (ConfigurationException $configurationException) {
-            $this->error("Configuration error: {$configurationException->getMessage()}");
+        $builder = $this->resolveOrFail(EnvironmentBuilder::class);
 
+        if ($builder === null) {
             return self::FAILURE;
         }
 

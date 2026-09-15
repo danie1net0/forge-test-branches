@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Ddr\ForgeTestBranches\Services;
 
+use Closure;
 use Ddr\ForgeTestBranches\Data\{CreateDatabaseData, CreateDatabaseUserData, CreateSiteData, DatabaseData, DatabaseUserData, DomainData, EnvironmentData, SiteData};
 use Ddr\ForgeTestBranches\Exceptions\{ConfigurationException, DomainNotFoundException};
 use Ddr\ForgeTestBranches\Integrations\Forge\ForgeClient;
@@ -23,6 +24,14 @@ class EnvironmentBuilder
 
     /** @var array<int, string> */
     private const array VALID_GIT_PROVIDERS = ['gitlab', 'github', 'bitbucket'];
+
+    /**
+     * MySQL truncates identifiers at 63 bytes, but usernames are capped at
+     * 32 characters — well below the 63 the Forge API allows for a database
+     * name. The same generated name is reused for both, so it is truncated
+     * to the tighter limit.
+     */
+    private const int MAX_MYSQL_IDENTIFIER_LENGTH = 32;
 
     public function __construct(
         protected ForgeClient $forge,
@@ -184,15 +193,14 @@ class EnvironmentBuilder
     protected function buildDatabaseName(string $slug): string
     {
         $prefix = (string) config('forge-test-branches.database.prefix');
-        $maxLength = 32;
         $name = $prefix . str_replace('-', '_', $slug);
 
-        if (mb_strlen($name) <= $maxLength) {
+        if (mb_strlen($name) <= self::MAX_MYSQL_IDENTIFIER_LENGTH) {
             return $name;
         }
 
         $hash = mb_substr(md5($slug), 0, 6);
-        $availableLength = $maxLength - mb_strlen($prefix) - mb_strlen($hash) - 1;
+        $availableLength = self::MAX_MYSQL_IDENTIFIER_LENGTH - mb_strlen($prefix) - mb_strlen($hash) - 1;
         $truncatedSlug = mb_substr(str_replace('-', '_', $slug), 0, $availableLength);
         $truncatedSlug = mb_rtrim($truncatedSlug, '_');
 
@@ -316,7 +324,7 @@ class EnvironmentBuilder
             throw DomainNotFoundException::onSite($domain);
         }
 
-        $this->forge->domains()->waitForEnabled($serverId, $siteId, $domainRecord->id, $domain);
+        $this->forge->domains()->waitForEnabled($serverId, $siteId, $domainRecord->id);
 
         $verificationMethod = (string) config('forge-test-branches.ssl.verification_method', 'http-01');
         $certificate = $this->forge->domains()->obtainLetsEncryptCertificate($serverId, $siteId, $domainRecord->id, $verificationMethod);
@@ -385,58 +393,69 @@ class EnvironmentBuilder
 
     private function deleteSite(EnvironmentData $environment): ?string
     {
-        try {
-            $this->forge->sites()->delete($environment->serverId, $environment->siteId);
-        } catch (NotFoundException) {
-            $this->logger->debug('Site already removed', ['site_id' => $environment->siteId]);
-
-            return null;
-        } catch (Throwable $throwable) {
-            $this->logger->error('Failed to delete site', ['site_id' => $environment->siteId, 'error' => $throwable->getMessage()]);
-
-            return "Site: {$throwable->getMessage()}";
-        }
-
-        return null;
+        return $this->deleteResourceQuietly(
+            label: 'Site',
+            context: ['site_id' => $environment->siteId],
+            delete: function () use ($environment): void {
+                $this->forge->sites()->delete($environment->serverId, $environment->siteId);
+            },
+        );
     }
 
     private function deleteDatabaseUser(EnvironmentData $environment): ?string
     {
-        if ($environment->databaseUserId === null) {
+        $databaseUserId = $environment->databaseUserId;
+
+        if ($databaseUserId === null) {
             return null;
         }
 
-        try {
-            $this->forge->databaseUsers()->delete($environment->serverId, $environment->databaseUserId);
-        } catch (NotFoundException) {
-            $this->logger->debug('Database user already removed', ['user_id' => $environment->databaseUserId]);
-
-            return null;
-        } catch (Throwable $throwable) {
-            $this->logger->error('Failed to delete database user', ['user_id' => $environment->databaseUserId, 'error' => $throwable->getMessage()]);
-
-            return "Database user: {$throwable->getMessage()}";
-        }
-
-        return null;
+        return $this->deleteResourceQuietly(
+            label: 'Database user',
+            context: ['user_id' => $databaseUserId],
+            delete: function () use ($environment, $databaseUserId): void {
+                $this->forge->databaseUsers()->delete($environment->serverId, $databaseUserId);
+            },
+        );
     }
 
     private function deleteDatabase(EnvironmentData $environment): ?string
     {
-        if ($environment->databaseId === null) {
+        $databaseId = $environment->databaseId;
+
+        if ($databaseId === null) {
             return null;
         }
 
+        return $this->deleteResourceQuietly(
+            label: 'Database',
+            context: ['database_id' => $databaseId],
+            delete: function () use ($environment, $databaseId): void {
+                $this->forge->databases()->delete($environment->serverId, $databaseId);
+            },
+        );
+    }
+
+    /**
+     * Deletes a resource, tolerating that it may already be gone (404).
+     * Returns null on success, or an error message prefixed with the label
+     * so the caller can aggregate failures across multiple resources.
+     *
+     * @param array<string, mixed> $context
+     * @param Closure(): void $delete
+     */
+    private function deleteResourceQuietly(string $label, array $context, Closure $delete): ?string
+    {
         try {
-            $this->forge->databases()->delete($environment->serverId, $environment->databaseId);
+            $delete();
         } catch (NotFoundException) {
-            $this->logger->debug('Database already removed', ['database_id' => $environment->databaseId]);
+            $this->logger->debug("{$label} already removed", $context);
 
             return null;
         } catch (Throwable $throwable) {
-            $this->logger->error('Failed to delete database', ['database_id' => $environment->databaseId, 'error' => $throwable->getMessage()]);
+            $this->logger->error('Failed to delete ' . mb_strtolower($label), [...$context, 'error' => $throwable->getMessage()]);
 
-            return "Database: {$throwable->getMessage()}";
+            return "{$label}: {$throwable->getMessage()}";
         }
 
         return null;
