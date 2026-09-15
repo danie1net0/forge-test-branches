@@ -378,11 +378,12 @@ class EnvironmentBuilder
 
     /**
      * Forge validates the file it receives with phpdotenv, which rejects
-     * unquoted values containing whitespace, quotes, a backslash or `#`,
-     * and interpolates `$` in both unquoted and double-quoted values. A
-     * value needing quotes is therefore single-quoted to stay literal;
-     * double quotes are used only when the value itself contains a single
-     * quote, escaping what phpdotenv still treats specially inside them.
+     * unquoted values containing whitespace, quotes, a backslash, `#` or a
+     * backtick, and interpolates `$` in both unquoted and double-quoted
+     * values. A value needing quotes is therefore single-quoted to stay
+     * literal; double quotes are used only when the value itself contains
+     * a single quote, escaping what phpdotenv still treats specially
+     * inside them.
      */
     private function formatEnvironmentValue(string $value): string
     {
