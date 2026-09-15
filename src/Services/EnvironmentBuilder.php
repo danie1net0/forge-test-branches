@@ -299,7 +299,12 @@ class EnvironmentBuilder
             }
         }
 
-        $merged = array_merge($existing, $newVariables);
+        $formattedVariables = array_map(
+            $this->formatEnvironmentValue(...),
+            $newVariables,
+        );
+
+        $merged = array_merge($existing, $formattedVariables);
 
         $result = [];
 
@@ -368,6 +373,23 @@ class EnvironmentBuilder
             },
             $value
         );
+    }
+
+    /**
+     * Forge validates the file with phpdotenv, which rejects unquoted values
+     * containing whitespace, quotes, backslashes or `#`.
+     */
+    private function formatEnvironmentValue(string $value): string
+    {
+        if (preg_match('/\A[^\s\\\\\'"#]*\z/', $value) === 1) {
+            return $value;
+        }
+
+        if (preg_match('/\A(?:\'[^\']*\'|"(?:[^"\\\\]|\\\\.)*")\z/s', $value) === 1) {
+            return $value;
+        }
+
+        return '"' . str_replace(['\\', '"'], ['\\\\', '\\"'], $value) . '"';
     }
 
     private function assertConfigurationIsValid(): void

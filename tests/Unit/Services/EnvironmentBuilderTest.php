@@ -2,6 +2,7 @@
 
 declare(strict_types=1);
 
+use Dotenv\Parser\Parser;
 use Ddr\ForgeTestBranches\Data\{CertificateData, CreateDatabaseData, CreateDatabaseUserData, CreateSiteData, DatabaseData, DatabaseUserData, DomainData, EnvironmentData, SiteData};
 use Ddr\ForgeTestBranches\Exceptions\ConfigurationException;
 use Ddr\ForgeTestBranches\Integrations\Forge\{ForgeClient, ForgeConnector};
@@ -463,6 +464,38 @@ test('processa placeholders {slug} e {env:VAR} nas variáveis de ambiente', func
         ->toContain('DB_USERNAME=review_test');
 
     putenv('BASE_APP_KEY');
+});
+
+test('grava valores do .env em formato que o phpdotenv aceita', function (): void {
+    config([
+        'forge-test-branches.env_variables' => [
+            'MAIL_FROM_NAME' => 'ESC Solutions',
+            'QUOTED_TEXT' => 'He said "hi" \\o/',
+            'HASH_VALUE' => 'abc#123',
+            'ALREADY_QUOTED' => '"${APP_NAME}"',
+            'PLAIN_VALUE' => 'https://feat.review.example.com',
+        ],
+    ]);
+
+    $mocks = makeForgeMocks();
+    $recorder = expectEnvironmentCreation($mocks, 'review_feat_quotes', 'feat-quotes.review.example.com');
+
+    makeEnvironmentBuilder($mocks['forge'])->create('feat/quotes');
+
+    $parsedValues = [];
+
+    foreach (new Parser()->parse($recorder->environment) as $entry) {
+        $parsedValues[$entry->getName()] = $entry->getValue()->get()->getChars();
+    }
+
+    expect($parsedValues)
+        ->toHaveKey('MAIL_FROM_NAME', 'ESC Solutions')
+        ->toHaveKey('QUOTED_TEXT', 'He said "hi" \\o/')
+        ->toHaveKey('HASH_VALUE', 'abc#123')
+        ->toHaveKey('ALREADY_QUOTED', '${APP_NAME}')
+        ->and($recorder->environment)
+        ->toContain('PLAIN_VALUE=https://feat.review.example.com')
+        ->toContain('DB_DATABASE=review_feat_quotes');
 });
 
 test('lista todos os ambientes de review do servidor', function (): void {
