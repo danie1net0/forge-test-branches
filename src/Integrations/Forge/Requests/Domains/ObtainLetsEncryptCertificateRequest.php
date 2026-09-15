@@ -47,9 +47,11 @@ class ObtainLetsEncryptCertificateRequest extends Request implements HasBody
     {
         return [
             'type' => 'letsencrypt',
-            'enable' => true,
+            // With `true` Forge switches nginx to the certificate before Let's Encrypt issues it, and validation fails.
+            'enable' => false,
             'letsencrypt' => [
                 'verification_method' => $this->verificationMethod,
+                'key_type' => 'ecdsa',
             ],
         ];
     }

@@ -29,7 +29,7 @@ test('creates instance with all parameters', function (): void {
         ->createdAt->toBe('2025-07-29T09:00:00Z');
 });
 
-test('considera pronto apenas certificado instalado e ativo', function (string $status, bool $active, bool $expected): void {
+test('considera pronto apenas certificado instalado e ativo', function (string $status, ?bool $active, bool $expected): void {
     $data = new CertificateData(
         id: 123,
         serverId: 456,
@@ -45,6 +45,7 @@ test('considera pronto apenas certificado instalado e ativo', function (string $
 })->with([
     'instalado e ativo' => ['installed', true, true],
     'instalado mas inativo' => ['installed', false, false],
+    'instalado sem active definido' => ['installed', null, false],
     'ainda instalando' => ['installing', true, false],
     'falhou' => ['failed', false, false],
 ]);
