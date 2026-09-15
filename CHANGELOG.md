@@ -1,3 +1,24 @@
+# [2.0.0](https://github.com/danie1net0/forge-test-branches/compare/v1.11.0...v2.0.0) (2026-09-15)
+
+
+### Bug Fixes
+
+* **forge:** corrige achados da revisão automática do PR ([5b65228](https://github.com/danie1net0/forge-test-branches/commit/5b65228609ab9156c6565da5eb3557c78deda07b))
+* **forge:** corrige achados da segunda revisão da migração v2 ([f11c99c](https://github.com/danie1net0/forge-test-branches/commit/f11c99cae5396334d4b84ceec503b796a3eb86b5))
+* **forge:** corrige achados da terceira revisão automática do PR ([8d39d9c](https://github.com/danie1net0/forge-test-branches/commit/8d39d9c0b66a90f8e8068b9d5175a608802fa861))
+
+
+* feat(forge)!: migra pacote para a API v2 do Laravel Forge ([571d3f7](https://github.com/danie1net0/forge-test-branches/commit/571d3f720187b2e64f3f5d28373e1d7913796fed))
+
+
+### BREAKING CHANGES
+
+* token novo com os escopos da v2, variável
+FORGE_ORGANIZATION obrigatória, FORGE_PROJECT_TYPE usa os tipos de
+site da v2, e a API pública do client (construtor do ForgeClient/
+ForgeConnector, DTOs, métodos de SiteResource) mudou. Veja a seção
+"Upgrading from 1.x" do README para o passo a passo.
+
 # [1.11.0](https://github.com/danie1net0/forge-test-branches/compare/v1.10.1...v1.11.0) (2026-03-30)
 
 
