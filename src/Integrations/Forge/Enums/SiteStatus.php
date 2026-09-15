@@ -29,7 +29,7 @@ enum SiteStatus: string
     private const array PENDING_STATUSES = [self::CREATING, self::INSTALLING];
 
     /** @var array<int, self> */
-    private const array FAILURE_STATUSES = [self::FAILED, self::REMOVING, self::UNINSTALLING];
+    private const array REMOVAL_STATUSES = [self::REMOVING, self::UNINSTALLING];
 
     public function isPending(): bool
     {
@@ -38,11 +38,11 @@ enum SiteStatus: string
 
     public function hasFailed(): bool
     {
-        return in_array($this, self::FAILURE_STATUSES, true);
+        return $this === self::FAILED || $this->isBeingRemoved();
     }
 
     public function isBeingRemoved(): bool
     {
-        return $this === self::REMOVING || $this === self::UNINSTALLING;
+        return in_array($this, self::REMOVAL_STATUSES, true);
     }
 }

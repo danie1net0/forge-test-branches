@@ -57,7 +57,11 @@ class SiteData extends Data implements HasNameAttribute
             return false;
         }
 
-        return $this->repositoryStatus === RepositoryStatus::INSTALLED->value;
+        if ($this->repositoryStatus === null) {
+            return false;
+        }
+
+        return RepositoryStatus::tryFrom($this->repositoryStatus)?->isReady() ?? false;
     }
 
     public function hasFailedInstallation(): bool

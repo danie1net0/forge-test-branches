@@ -49,7 +49,14 @@ class WebhookController extends Controller
         }
 
         $builder = $container->make(EnvironmentBuilder::class);
-        $environment = $builder->find($branch);
+
+        try {
+            $environment = $builder->find($branch);
+        } catch (Throwable $throwable) {
+            $logger->error('Webhook: error finding environment', ['branch' => $branch, 'error' => $throwable->getMessage()]);
+
+            return response()->json(['message' => 'Error finding environment'], 500);
+        }
 
         if (! $environment instanceof EnvironmentData) {
             $logger->warning('Webhook: environment not found', ['branch' => $branch]);
