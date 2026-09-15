@@ -475,6 +475,7 @@ test('grava valores do .env em formato que o phpdotenv aceita sem interpolar $',
             'HASH_VALUE' => 'abc#123',
             'PASSWORD_WITH_DOLLAR' => 'pa$$word',
             'NAME_WITH_SINGLE_QUOTE' => "O'Brien",
+            'QUOTE_AND_DOLLAR' => "O'Brien \$5 off",
             'PLAIN_VALUE' => 'https://feat.review.example.com',
         ],
     ]);
@@ -495,6 +496,7 @@ test('grava valores do .env em formato que o phpdotenv aceita sem interpolar $',
         ->toHaveKey('HASH_VALUE', 'abc#123')
         ->toHaveKey('PASSWORD_WITH_DOLLAR', 'pa$$word')
         ->toHaveKey('NAME_WITH_SINGLE_QUOTE', "O'Brien")
+        ->toHaveKey('QUOTE_AND_DOLLAR', "O'Brien \$5 off")
         ->and($recorder->environment)
         ->toContain('PLAIN_VALUE=https://feat.review.example.com')
         ->toContain('DB_DATABASE=review_feat_quotes');
