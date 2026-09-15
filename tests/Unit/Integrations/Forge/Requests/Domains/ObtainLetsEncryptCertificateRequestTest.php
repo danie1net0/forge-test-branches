@@ -35,6 +35,12 @@ test('aceita um método de verificação diferente', function (): void {
     expect($request->body()->all())->toHaveKey('letsencrypt', ['verification_method' => 'dns-01', 'key_type' => 'ecdsa']);
 });
 
+test('aceita um tipo de chave diferente', function (): void {
+    $request = new ObtainLetsEncryptCertificateRequest(123, 456, 10, 'http-01', 'rsa');
+
+    expect($request->body()->all())->toHaveKey('letsencrypt', ['verification_method' => 'http-01', 'key_type' => 'rsa']);
+});
+
 test('aceita active nulo enquanto o certificado é emitido', function (): void {
     $mockClient = new MockClient([
         ObtainLetsEncryptCertificateRequest::class => MockResponse::make(forgeDocument(forgeResource('certificates', 5, forgeCertificateAttributes([

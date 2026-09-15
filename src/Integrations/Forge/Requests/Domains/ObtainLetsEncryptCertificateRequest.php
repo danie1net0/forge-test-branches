@@ -23,6 +23,7 @@ class ObtainLetsEncryptCertificateRequest extends Request implements HasBody
         protected int $siteId,
         protected int $domainId,
         protected string $verificationMethod = 'http-01',
+        protected string $keyType = 'ecdsa',
     ) {
     }
 
@@ -51,7 +52,7 @@ class ObtainLetsEncryptCertificateRequest extends Request implements HasBody
             'enable' => false,
             'letsencrypt' => [
                 'verification_method' => $this->verificationMethod,
-                'key_type' => 'ecdsa',
+                'key_type' => $this->keyType,
             ],
         ];
     }

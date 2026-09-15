@@ -627,7 +627,7 @@ Forge desactivó la API v1, por lo que la versión 2.x de este paquete se comuni
 
 Si usas el cliente de Forge directamente: el repositorio git ahora se define al crear el sitio (`InstallGitRepositoryData` fue eliminado), los certificados se gestionan a través de `ForgeClient::domains()`, y `CreateSiteData`, `CreateDatabaseUserData`, `SiteData`, `DatabaseUserData` y `CertificateData` siguen los nombres de campo de la v2. `SiteResource::findByDomain()` ahora es `findByName()`; `getEnvironment()`/`updateEnvironment()` ahora son `getEnvironmentFile()`/`updateEnvironmentFile()`; `CertificateData::isActive()` ahora es `isReady()`. Las excepciones propias del paquete viven en `Ddr\ForgeTestBranches\Exceptions` (todas extienden `RuntimeException`, así que los bloques `catch (RuntimeException)` existentes siguen funcionando).
 
-Nuevas claves de configuración: `FORGE_ZERO_DOWNTIME_DEPLOYMENTS` (por defecto `false` — Forge activa el zero-downtime deploy por defecto en sitios nuevos, pero el script generado no usa las macros de release que requiere) y `FORGE_SSL_VERIFICATION_METHOD` (por defecto `http-01`).
+Nuevas claves de configuración: `FORGE_ZERO_DOWNTIME_DEPLOYMENTS` (por defecto `false` — Forge activa el zero-downtime deploy por defecto en sitios nuevos, pero el script generado no usa las macros de release que requiere), `FORGE_SSL_VERIFICATION_METHOD` (por defecto `http-01`) y `FORGE_SSL_KEY_TYPE` (por defecto `ecdsa`, acepta `rsa`).
 
 ## Testing
 

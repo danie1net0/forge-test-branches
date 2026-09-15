@@ -31,6 +31,7 @@ beforeEach(function (): void {
         'forge-test-branches.deploy.quick_deploy' => true,
         'forge-test-branches.ssl.enabled' => false,
         'forge-test-branches.ssl.verification_method' => 'http-01',
+        'forge-test-branches.ssl.key_type' => 'ecdsa',
         'forge-test-branches.env_variables' => [],
     ]);
 });
@@ -563,7 +564,7 @@ test('cria ambiente com certificado SSL no domínio do site quando habilitado', 
         ->andReturn($domainRecord);
     $mocks['domains']->shouldReceive('obtainLetsEncryptCertificate')
         ->once()
-        ->with(12345, 100, 10, 'http-01')
+        ->with(12345, 100, 10, 'http-01', 'ecdsa')
         ->andReturn(new CertificateData(id: 5, serverId: 12345, siteId: 100, domainId: 10, type: 'letsencrypt', requestStatus: 'creating', status: 'installing', active: false));
     $mocks['domains']->shouldReceive('waitForCertificateActivation')
         ->once()

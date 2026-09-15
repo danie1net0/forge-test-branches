@@ -332,7 +332,8 @@ class EnvironmentBuilder
         $this->forge->domains()->waitForEnabled($serverId, $siteId, $domainRecord->id);
 
         $verificationMethod = (string) config('forge-test-branches.ssl.verification_method', 'http-01');
-        $certificate = $this->forge->domains()->obtainLetsEncryptCertificate($serverId, $siteId, $domainRecord->id, $verificationMethod);
+        $keyType = (string) config('forge-test-branches.ssl.key_type', 'ecdsa');
+        $certificate = $this->forge->domains()->obtainLetsEncryptCertificate($serverId, $siteId, $domainRecord->id, $verificationMethod, $keyType);
         $this->forge->domains()->waitForCertificateActivation($serverId, $siteId, $domainRecord->id, $certificate->id);
     }
 
