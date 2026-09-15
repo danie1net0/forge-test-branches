@@ -217,6 +217,9 @@ return [
     |   dns-01). http-01 works out of the box; dns-01 requires a CNAME
     |   pointing the domain's verify-* subdomain at Forge, which this
     |   package does not create automatically.
+    | - key_type: Private key type for the Let's Encrypt certificate (ecdsa
+    |   or rsa). ecdsa is the modern default; rsa exists for compatibility
+    |   with older clients or servers.
     |
     | When enabled, a Let's Encrypt SSL certificate will be obtained
     | automatically when creating a new review environment.
@@ -226,6 +229,7 @@ return [
     'ssl' => [
         'enabled' => env('FORGE_SSL_ENABLED', true),
         'verification_method' => env('FORGE_SSL_VERIFICATION_METHOD', 'http-01'),
+        'key_type' => env('FORGE_SSL_KEY_TYPE', 'ecdsa'),
     ],
 
     /*

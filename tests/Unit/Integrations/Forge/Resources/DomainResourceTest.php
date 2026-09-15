@@ -138,7 +138,7 @@ test('solicita certificado lets encrypt para o domínio com verificação http-0
         ->active->toBeFalse()
         ->and($mockClient->getLastPendingRequest())
         ->getUrl()->toBe('https://forge.laravel.com/api/orgs/test-org/servers/123/sites/456/domains/10/certificates')
-        ->body()->all()->toBe(['type' => 'letsencrypt', 'enable' => true, 'letsencrypt' => ['verification_method' => 'http-01']]);
+        ->body()->all()->toBe(['type' => 'letsencrypt', 'enable' => false, 'letsencrypt' => ['verification_method' => 'http-01', 'key_type' => 'ecdsa']]);
 });
 
 test('obtém detalhes do certificado', function (): void {

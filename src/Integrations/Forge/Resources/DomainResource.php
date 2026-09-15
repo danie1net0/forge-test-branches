@@ -54,9 +54,9 @@ class DomainResource
         );
     }
 
-    public function obtainLetsEncryptCertificate(int $serverId, int $siteId, int $domainId, string $verificationMethod = 'http-01'): CertificateData
+    public function obtainLetsEncryptCertificate(int $serverId, int $siteId, int $domainId, string $verificationMethod = 'http-01', string $keyType = 'ecdsa'): CertificateData
     {
-        $request = new ObtainLetsEncryptCertificateRequest($serverId, $siteId, $domainId, $verificationMethod);
+        $request = new ObtainLetsEncryptCertificateRequest($serverId, $siteId, $domainId, $verificationMethod, $keyType);
         $response = $this->connector->send($request);
 
         return $request->createDtoFromResponse($response);

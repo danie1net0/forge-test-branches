@@ -632,7 +632,7 @@ Forge shut down the v1 API, so version 2.x of this package talks to the Forge AP
 
 If you use the Forge client directly: the git repository is now defined when the site is created (`InstallGitRepositoryData` was removed), certificates are managed through `ForgeClient::domains()`, and `CreateSiteData`, `CreateDatabaseUserData`, `SiteData`, `DatabaseUserData` and `CertificateData` follow the v2 field names. `SiteResource::findByDomain()` is now `findByName()`; `getEnvironment()`/`updateEnvironment()` are now `getEnvironmentFile()`/`updateEnvironmentFile()`; `CertificateData::isActive()` is now `isReady()`. The package's own exceptions live under `Ddr\ForgeTestBranches\Exceptions` (all extend `RuntimeException`, so existing `catch (RuntimeException)` blocks keep working).
 
-New config keys: `FORGE_ZERO_DOWNTIME_DEPLOYMENTS` (default `false` — Forge enables zero-downtime deploys by default for new sites, but the generated script doesn't use its release macros) and `FORGE_SSL_VERIFICATION_METHOD` (default `http-01`).
+New config keys: `FORGE_ZERO_DOWNTIME_DEPLOYMENTS` (default `false` — Forge enables zero-downtime deploys by default for new sites, but the generated script doesn't use its release macros), `FORGE_SSL_VERIFICATION_METHOD` (default `http-01`) and `FORGE_SSL_KEY_TYPE` (default `ecdsa`, accepts `rsa`).
 
 ## Testing
 

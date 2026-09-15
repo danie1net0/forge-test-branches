@@ -2,6 +2,7 @@
 
 declare(strict_types=1);
 
+use Dotenv\Dotenv;
 use Ddr\ForgeTestBranches\Data\{CertificateData, CreateDatabaseData, CreateDatabaseUserData, CreateSiteData, DatabaseData, DatabaseUserData, DomainData, EnvironmentData, SiteData};
 use Ddr\ForgeTestBranches\Exceptions\ConfigurationException;
 use Ddr\ForgeTestBranches\Integrations\Forge\{ForgeClient, ForgeConnector};
@@ -30,6 +31,7 @@ beforeEach(function (): void {
         'forge-test-branches.deploy.quick_deploy' => true,
         'forge-test-branches.ssl.enabled' => false,
         'forge-test-branches.ssl.verification_method' => 'http-01',
+        'forge-test-branches.ssl.key_type' => 'ecdsa',
         'forge-test-branches.env_variables' => [],
     ]);
 });
@@ -240,6 +242,8 @@ test('cria site com repositório, branch, dependências do composer e zero-downt
         'name' => 'feat-repo.review.example.com',
         'type' => 'laravel',
         'domain_mode' => 'custom',
+        'www_redirect_type' => 'none',
+        'allow_wildcard_subdomains' => false,
         'web_directory' => '/public',
         'is_isolated' => true,
         'php_version' => 'php84',
@@ -463,6 +467,59 @@ test('processa placeholders {slug} e {env:VAR} nas variáveis de ambiente', func
     putenv('BASE_APP_KEY');
 });
 
+test('grava valores do .env em formato que o phpdotenv aceita sem interpolar $', function (): void {
+    config([
+        'forge-test-branches.env_variables' => [
+            'MAIL_FROM_NAME' => 'ESC Solutions',
+            'QUOTED_TEXT' => 'He said "hi" \\o/',
+            'HASH_VALUE' => 'abc#123',
+            'PASSWORD_WITH_DOLLAR' => 'pa$$word',
+            'NAME_WITH_SINGLE_QUOTE' => "O'Brien",
+            'QUOTE_AND_DOLLAR' => "O'Brien \$5 off",
+            'PLAIN_VALUE' => 'https://feat.review.example.com',
+        ],
+    ]);
+
+    $mocks = makeForgeMocks();
+    $recorder = expectEnvironmentCreation($mocks, 'review_feat_quotes', 'feat-quotes.review.example.com');
+
+    makeEnvironmentBuilder($mocks['forge'])->create('feat/quotes');
+
+    // Dotenv::parse() runs the full pipeline, including `$` interpolation,
+    // unlike the raw Parser: it is the only way to prove a dollar sign
+    // survives as a literal character instead of being expanded.
+    $parsedValues = Dotenv::parse($recorder->environment);
+
+    expect($parsedValues)
+        ->toHaveKey('MAIL_FROM_NAME', 'ESC Solutions')
+        ->toHaveKey('QUOTED_TEXT', 'He said "hi" \\o/')
+        ->toHaveKey('HASH_VALUE', 'abc#123')
+        ->toHaveKey('PASSWORD_WITH_DOLLAR', 'pa$$word')
+        ->toHaveKey('NAME_WITH_SINGLE_QUOTE', "O'Brien")
+        ->toHaveKey('QUOTE_AND_DOLLAR', "O'Brien \$5 off")
+        ->and($recorder->environment)
+        ->toContain('PLAIN_VALUE=https://feat.review.example.com')
+        ->toContain('DB_DATABASE=review_feat_quotes');
+});
+
+test('substitui quebras de linha por espaço para não corromper o merge na próxima atualização', function (): void {
+    config([
+        'forge-test-branches.env_variables' => [
+            'MULTI_LINE' => "line one\nline two\r\nline three",
+        ],
+    ]);
+
+    $mocks = makeForgeMocks();
+    $recorder = expectEnvironmentCreation($mocks, 'review_feat_newline', 'feat-newline.review.example.com');
+
+    makeEnvironmentBuilder($mocks['forge'])->create('feat/newline');
+
+    expect($recorder->environment)
+        ->not->toContain("line one\n")
+        ->and(Dotenv::parse($recorder->environment))
+        ->toHaveKey('MULTI_LINE', 'line one line two line three');
+});
+
 test('lista todos os ambientes de review do servidor', function (): void {
     $mocks = makeForgeMocks();
 
@@ -527,7 +584,7 @@ test('cria ambiente com certificado SSL no domínio do site quando habilitado', 
         ->andReturn($domainRecord);
     $mocks['domains']->shouldReceive('obtainLetsEncryptCertificate')
         ->once()
-        ->with(12345, 100, 10, 'http-01')
+        ->with(12345, 100, 10, 'http-01', 'ecdsa')
         ->andReturn(new CertificateData(id: 5, serverId: 12345, siteId: 100, domainId: 10, type: 'letsencrypt', requestStatus: 'creating', status: 'installing', active: false));
     $mocks['domains']->shouldReceive('waitForCertificateActivation')
         ->once()

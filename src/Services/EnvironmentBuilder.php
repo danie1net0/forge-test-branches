@@ -299,7 +299,12 @@ class EnvironmentBuilder
             }
         }
 
-        $merged = array_merge($existing, $newVariables);
+        $formattedVariables = array_map(
+            $this->formatEnvironmentValue(...),
+            $newVariables,
+        );
+
+        $merged = array_merge($existing, $formattedVariables);
 
         $result = [];
 
@@ -327,7 +332,8 @@ class EnvironmentBuilder
         $this->forge->domains()->waitForEnabled($serverId, $siteId, $domainRecord->id);
 
         $verificationMethod = (string) config('forge-test-branches.ssl.verification_method', 'http-01');
-        $certificate = $this->forge->domains()->obtainLetsEncryptCertificate($serverId, $siteId, $domainRecord->id, $verificationMethod);
+        $keyType = (string) config('forge-test-branches.ssl.key_type', 'ecdsa');
+        $certificate = $this->forge->domains()->obtainLetsEncryptCertificate($serverId, $siteId, $domainRecord->id, $verificationMethod, $keyType);
         $this->forge->domains()->waitForCertificateActivation($serverId, $siteId, $domainRecord->id, $certificate->id);
     }
 
@@ -368,6 +374,33 @@ class EnvironmentBuilder
             },
             $value
         );
+    }
+
+    /**
+     * Forge validates the file it receives with phpdotenv, which rejects
+     * unquoted values containing whitespace, quotes, a backslash or `#`,
+     * and interpolates `$` in both unquoted and double-quoted values. A
+     * value needing quotes is therefore single-quoted to stay literal;
+     * double quotes are used only when the value itself contains a single
+     * quote, escaping what phpdotenv still treats specially inside them.
+     *
+     * mergeEnvVariables() re-reads the current file split by line, so a
+     * literal newline inside a value would corrupt it on the next update
+     * even though phpdotenv itself allows a newline inside quotes.
+     */
+    private function formatEnvironmentValue(string $value): string
+    {
+        $value = str_replace(["\r\n", "\r", "\n"], ' ', $value);
+
+        if (preg_match('/[\s#\'"\\\\$]/', $value) !== 1) {
+            return $value;
+        }
+
+        if (! str_contains($value, "'")) {
+            return "'{$value}'";
+        }
+
+        return '"' . addcslashes($value, '"\\$') . '"';
     }
 
     private function assertConfigurationIsValid(): void

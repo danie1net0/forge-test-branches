@@ -20,14 +20,14 @@ class CertificateData extends Data
         public string $type,
         public string $requestStatus,
         public string $status,
-        public bool $active,
+        public ?bool $active = null,
         public ?string $createdAt = null,
     ) {
     }
 
     public function isReady(): bool
     {
-        return $this->status === CertificateStatus::INSTALLED->value && $this->active;
+        return $this->status === CertificateStatus::INSTALLED->value && $this->active === true;
     }
 
     public function hasFailed(): bool

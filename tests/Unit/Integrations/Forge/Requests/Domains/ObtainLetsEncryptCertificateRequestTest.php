@@ -19,20 +19,45 @@ test('usa método POST', function (): void {
     expect($request->getMethod()->value)->toBe('POST');
 });
 
-test('envia o método de verificação http-01 por padrão', function (): void {
+test('envia http-01, chave ecdsa e deixa o Forge ativar o certificado após a emissão', function (): void {
     $request = new ObtainLetsEncryptCertificateRequest(123, 456, 10);
 
     expect($request->body()->all())->toBe([
         'type' => 'letsencrypt',
-        'enable' => true,
-        'letsencrypt' => ['verification_method' => 'http-01'],
+        'enable' => false,
+        'letsencrypt' => ['verification_method' => 'http-01', 'key_type' => 'ecdsa'],
     ]);
 });
 
 test('aceita um método de verificação diferente', function (): void {
     $request = new ObtainLetsEncryptCertificateRequest(123, 456, 10, 'dns-01');
 
-    expect($request->body()->all())->toHaveKey('letsencrypt', ['verification_method' => 'dns-01']);
+    expect($request->body()->all())->toHaveKey('letsencrypt', ['verification_method' => 'dns-01', 'key_type' => 'ecdsa']);
+});
+
+test('aceita um tipo de chave diferente', function (): void {
+    $request = new ObtainLetsEncryptCertificateRequest(123, 456, 10, 'http-01', 'rsa');
+
+    expect($request->body()->all())->toHaveKey('letsencrypt', ['verification_method' => 'http-01', 'key_type' => 'rsa']);
+});
+
+test('aceita active nulo enquanto o certificado é emitido', function (): void {
+    $mockClient = new MockClient([
+        ObtainLetsEncryptCertificateRequest::class => MockResponse::make(forgeDocument(forgeResource('certificates', 5, forgeCertificateAttributes([
+            'status' => 'installing',
+            'request_status' => 'creating',
+            'active' => null,
+        ]))), 202),
+    ]);
+
+    $connector = new ForgeConnector('test-token', 'test-org');
+    $connector->withMockClient($mockClient);
+
+    $request = new ObtainLetsEncryptCertificateRequest(123, 456, 10);
+    $certificate = $request->createDtoFromResponse($connector->send($request));
+
+    expect($certificate->active)->toBeNull()
+        ->and($certificate->isReady())->toBeFalse();
 });
 
 test('retorna CertificateData do response', function (): void {
