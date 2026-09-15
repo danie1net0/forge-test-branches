@@ -383,9 +383,15 @@ class EnvironmentBuilder
      * value needing quotes is therefore single-quoted to stay literal;
      * double quotes are used only when the value itself contains a single
      * quote, escaping what phpdotenv still treats specially inside them.
+     *
+     * mergeEnvVariables() re-reads the current file split by line, so a
+     * literal newline inside a value would corrupt it on the next update
+     * even though phpdotenv itself allows a newline inside quotes.
      */
     private function formatEnvironmentValue(string $value): string
     {
+        $value = str_replace(["\r\n", "\r", "\n"], ' ', $value);
+
         if (preg_match('/[\s#\'"\\\\$]/', $value) !== 1) {
             return $value;
         }

@@ -502,6 +502,24 @@ test('grava valores do .env em formato que o phpdotenv aceita sem interpolar $',
         ->toContain('DB_DATABASE=review_feat_quotes');
 });
 
+test('substitui quebras de linha por espaço para não corromper o merge na próxima atualização', function (): void {
+    config([
+        'forge-test-branches.env_variables' => [
+            'MULTI_LINE' => "line one\nline two\r\nline three",
+        ],
+    ]);
+
+    $mocks = makeForgeMocks();
+    $recorder = expectEnvironmentCreation($mocks, 'review_feat_newline', 'feat-newline.review.example.com');
+
+    makeEnvironmentBuilder($mocks['forge'])->create('feat/newline');
+
+    expect($recorder->environment)
+        ->not->toContain("line one\n")
+        ->and(Dotenv::parse($recorder->environment))
+        ->toHaveKey('MULTI_LINE', 'line one line two line three');
+});
+
 test('lista todos os ambientes de review do servidor', function (): void {
     $mocks = makeForgeMocks();
 
