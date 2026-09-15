@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-use Dotenv\Parser\Parser;
+use Dotenv\Dotenv;
 use Ddr\ForgeTestBranches\Data\{CertificateData, CreateDatabaseData, CreateDatabaseUserData, CreateSiteData, DatabaseData, DatabaseUserData, DomainData, EnvironmentData, SiteData};
 use Ddr\ForgeTestBranches\Exceptions\ConfigurationException;
 use Ddr\ForgeTestBranches\Integrations\Forge\{ForgeClient, ForgeConnector};
@@ -466,13 +466,14 @@ test('processa placeholders {slug} e {env:VAR} nas variáveis de ambiente', func
     putenv('BASE_APP_KEY');
 });
 
-test('grava valores do .env em formato que o phpdotenv aceita', function (): void {
+test('grava valores do .env em formato que o phpdotenv aceita sem interpolar $', function (): void {
     config([
         'forge-test-branches.env_variables' => [
             'MAIL_FROM_NAME' => 'ESC Solutions',
             'QUOTED_TEXT' => 'He said "hi" \\o/',
             'HASH_VALUE' => 'abc#123',
-            'ALREADY_QUOTED' => '"${APP_NAME}"',
+            'PASSWORD_WITH_DOLLAR' => 'pa$$word',
+            'NAME_WITH_SINGLE_QUOTE' => "O'Brien",
             'PLAIN_VALUE' => 'https://feat.review.example.com',
         ],
     ]);
@@ -482,17 +483,17 @@ test('grava valores do .env em formato que o phpdotenv aceita', function (): voi
 
     makeEnvironmentBuilder($mocks['forge'])->create('feat/quotes');
 
-    $parsedValues = [];
-
-    foreach (new Parser()->parse($recorder->environment) as $entry) {
-        $parsedValues[$entry->getName()] = $entry->getValue()->get()->getChars();
-    }
+    // Dotenv::parse() runs the full pipeline, including `$` interpolation,
+    // unlike the raw Parser: it is the only way to prove a dollar sign
+    // survives as a literal character instead of being expanded.
+    $parsedValues = Dotenv::parse($recorder->environment);
 
     expect($parsedValues)
         ->toHaveKey('MAIL_FROM_NAME', 'ESC Solutions')
         ->toHaveKey('QUOTED_TEXT', 'He said "hi" \\o/')
         ->toHaveKey('HASH_VALUE', 'abc#123')
-        ->toHaveKey('ALREADY_QUOTED', '${APP_NAME}')
+        ->toHaveKey('PASSWORD_WITH_DOLLAR', 'pa$$word')
+        ->toHaveKey('NAME_WITH_SINGLE_QUOTE', "O'Brien")
         ->and($recorder->environment)
         ->toContain('PLAIN_VALUE=https://feat.review.example.com')
         ->toContain('DB_DATABASE=review_feat_quotes');

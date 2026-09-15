@@ -376,20 +376,24 @@ class EnvironmentBuilder
     }
 
     /**
-     * Forge validates the file with phpdotenv, which rejects unquoted values
-     * containing whitespace, quotes, backslashes or `#`.
+     * Forge validates the file it receives with phpdotenv, which rejects
+     * unquoted values containing whitespace, quotes, a backslash or `#`,
+     * and interpolates `$` in both unquoted and double-quoted values. A
+     * value needing quotes is therefore single-quoted to stay literal;
+     * double quotes are used only when the value itself contains a single
+     * quote, escaping what phpdotenv still treats specially inside them.
      */
     private function formatEnvironmentValue(string $value): string
     {
-        if (preg_match('/\A[^\s\\\\\'"#]*\z/', $value) === 1) {
+        if (preg_match('/[\s#\'"\\\\`$]/', $value) !== 1) {
             return $value;
         }
 
-        if (preg_match('/\A(?:\'[^\']*\'|"(?:[^"\\\\]|\\\\.)*")\z/s', $value) === 1) {
-            return $value;
+        if (! str_contains($value, "'")) {
+            return "'{$value}'";
         }
 
-        return '"' . str_replace(['\\', '"'], ['\\\\', '\\"'], $value) . '"';
+        return '"' . addcslashes($value, '"\\$') . '"';
     }
 
     private function assertConfigurationIsValid(): void
