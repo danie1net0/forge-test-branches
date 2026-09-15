@@ -17,6 +17,9 @@ class CreateSiteData extends Data
         public string $name,
         public string $type,
         public string $domainMode = 'custom',
+        // The OpenAPI spec marks these optional, but the API rejects a custom domain without them.
+        public string $wwwRedirectType = 'none',
+        public bool $allowWildcardSubdomains = false,
         public ?string $webDirectory = null,
         public ?bool $isIsolated = null,
         public ?string $phpVersion = null,

@@ -33,6 +33,8 @@ test('envia repositório junto com a criação do site', function (): void {
         'name' => 'test.example.com',
         'type' => 'laravel',
         'domain_mode' => 'custom',
+        'www_redirect_type' => 'none',
+        'allow_wildcard_subdomains' => false,
         'source_control_provider' => 'gitlab',
         'repository' => 'user/repo',
         'branch' => 'feat/test',
@@ -45,6 +47,14 @@ test('não envia zero-downtime deployments ligado por padrão', function (): voi
     $request = new CreateSiteRequest(123, new CreateSiteData(name: 'test.example.com', type: 'php'));
 
     expect($request->body()->all())->toHaveKey('zero_downtime_deployments', false);
+});
+
+test('envia redirecionamento www e subdomínios curinga exigidos pela API', function (): void {
+    $request = new CreateSiteRequest(123, new CreateSiteData(name: 'test.example.com', type: 'php'));
+
+    expect($request->body()->all())
+        ->toHaveKey('www_redirect_type', 'none')
+        ->toHaveKey('allow_wildcard_subdomains', false);
 });
 
 test('cria site e retorna DTO correto', function (): void {

@@ -240,6 +240,8 @@ test('cria site com repositório, branch, dependências do composer e zero-downt
         'name' => 'feat-repo.review.example.com',
         'type' => 'laravel',
         'domain_mode' => 'custom',
+        'www_redirect_type' => 'none',
+        'allow_wildcard_subdomains' => false,
         'web_directory' => '/public',
         'is_isolated' => true,
         'php_version' => 'php84',

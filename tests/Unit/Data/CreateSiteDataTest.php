@@ -14,6 +14,8 @@ test('cria instância com parâmetros obrigatórios', function (): void {
         ->name->toBe('test.example.com')
         ->type->toBe('php')
         ->domainMode->toBe('custom')
+        ->wwwRedirectType->toBe('none')
+        ->allowWildcardSubdomains->toBeFalse()
         ->webDirectory->toBeNull()
         ->repository->toBeNull()
         ->zeroDowntimeDeployments->toBeFalse();
@@ -24,6 +26,8 @@ test('cria instância com todos os parâmetros', function (): void {
         name: 'test.example.com',
         type: 'laravel',
         domainMode: 'custom',
+        wwwRedirectType: 'from-www',
+        allowWildcardSubdomains: true,
         webDirectory: '/public',
         isIsolated: true,
         phpVersion: 'php84',
@@ -38,6 +42,8 @@ test('cria instância com todos os parâmetros', function (): void {
     expect($data)
         ->name->toBe('test.example.com')
         ->type->toBe('laravel')
+        ->wwwRedirectType->toBe('from-www')
+        ->allowWildcardSubdomains->toBeTrue()
         ->webDirectory->toBe('/public')
         ->isIsolated->toBeTrue()
         ->phpVersion->toBe('php84')
@@ -49,7 +55,7 @@ test('cria instância com todos os parâmetros', function (): void {
         ->nginxTemplateId->toBe(1);
 });
 
-test('filtra valores null no toArray mas mantém zero_downtime_deployments explícito', function (): void {
+test('filtra valores null no toArray mas mantém os campos exigidos pela API', function (): void {
     $data = new CreateSiteData(
         name: 'test.example.com',
         type: 'php',
@@ -60,6 +66,8 @@ test('filtra valores null no toArray mas mantém zero_downtime_deployments expl�
         'name' => 'test.example.com',
         'type' => 'php',
         'domain_mode' => 'custom',
+        'www_redirect_type' => 'none',
+        'allow_wildcard_subdomains' => false,
         'web_directory' => '/public',
         'zero_downtime_deployments' => false,
     ]);
