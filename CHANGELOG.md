@@ -1,3 +1,20 @@
+# [2.1.0](https://github.com/danie1net0/forge-test-branches/compare/v2.0.0...v2.1.0) (2026-09-15)
+
+
+### Bug Fixes
+
+* **env:** coloca aspas em valores do .env que o phpdotenv recusa ([f9ee497](https://github.com/danie1net0/forge-test-branches/commit/f9ee497fffe6479279b153086fd25af60172ff36))
+* **env:** evita que phpdotenv interprete $ nos valores gravados ([893e957](https://github.com/danie1net0/forge-test-branches/commit/893e957dd26393821dad7af9c420b2ecb223cd7b))
+* **env:** remove a crase da lista de caracteres que exigem aspas ([a657e5e](https://github.com/danie1net0/forge-test-branches/commit/a657e5e52c37af2667bd023bc5f4c63f272054d2))
+* **env:** substitui quebra de linha por espaço nos valores gravados ([d1ac378](https://github.com/danie1net0/forge-test-branches/commit/d1ac378589b8bfa6043e5eb8f7fca0d74dda9ed2))
+* **sites:** envia campos de domínio exigidos na criação do site ([5a17dad](https://github.com/danie1net0/forge-test-branches/commit/5a17dade68ad6e574cd19268439be4f10600523b))
+* **ssl:** corrige a emissão do certificado Let's Encrypt ([879bd54](https://github.com/danie1net0/forge-test-branches/commit/879bd54ce6918a6de6f75d6ed34d3f74ab112313))
+
+
+### Features
+
+* **ssl:** permite configurar o tipo de chave do certificado Let's Encrypt ([db3b127](https://github.com/danie1net0/forge-test-branches/commit/db3b1279f5bc10c7308ef3715902006e6eabe34e))
+
 # [2.0.0](https://github.com/danie1net0/forge-test-branches/compare/v1.11.0...v2.0.0) (2026-09-15)
 
 
