@@ -372,6 +372,12 @@ class EnvironmentBuilder
 
     private function assertConfigurationIsValid(): void
     {
+        $serverId = config('forge-test-branches.server_id');
+
+        if (! is_numeric($serverId) || (int) $serverId <= 0) {
+            throw ConfigurationException::missingServerId();
+        }
+
         $projectType = (string) config('forge-test-branches.site.project_type');
 
         if (! in_array($projectType, self::VALID_SITE_TYPES, true)) {

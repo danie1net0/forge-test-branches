@@ -124,7 +124,8 @@ return [
     | Site configuration to be created on Forge.
     |
     | - php_version: PHP version (php81, php82, php83, php84, php85)
-    | - project_type: Site type (laravel, php, symfony, statamic, static-html, other)
+    | - project_type: Site type (laravel, php, symfony, statamic, wordpress,
+    |   phpmyadmin, nextjs, nuxtjs, static-html, other, custom)
     | - directory: Site public directory
     | - isolated: Whether the site should run in isolated mode (dedicated user)
     | - zero_downtime_deployments: Whether to enable Forge's zero-downtime

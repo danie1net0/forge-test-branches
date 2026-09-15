@@ -45,6 +45,20 @@ class ForgeClient
         return new DatabaseUserResource($this->connector);
     }
 
+    /**
+     * Whether the app-level config alone (no constructor overrides) is
+     * enough to build a client. Callers that resolve this class through the
+     * container — where a caught ConfigurationException isn't statically
+     * provable and reads as dead code — can check this first instead.
+     */
+    public static function isConfigured(): bool
+    {
+        $token = config('forge-test-branches.forge_api_token');
+        $organization = config('forge-test-branches.organization');
+
+        return is_string($token) && $token !== '' && is_string($organization) && $organization !== '';
+    }
+
     private function resolveToken(?string $token): string
     {
         $resolved = $token ?? (string) config('forge-test-branches.forge_api_token');

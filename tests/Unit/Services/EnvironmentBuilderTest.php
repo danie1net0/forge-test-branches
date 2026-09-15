@@ -581,6 +581,23 @@ test('não habilita quick deploy quando desabilitado', function (): void {
         ->and($recorder->calls)->not->toContain('sites.enableQuickDeploy');
 });
 
+test('lança exceção de configuração quando o server_id não está definido, sem criar recursos', function (mixed $serverId): void {
+    config(['forge-test-branches.server_id' => $serverId]);
+
+    $mocks = makeForgeMocks();
+    $mocks['databases']->shouldNotReceive('create');
+    $mocks['databaseUsers']->shouldNotReceive('create');
+    $mocks['sites']->shouldNotReceive('create');
+
+    expect(fn (): EnvironmentData => makeEnvironmentBuilder($mocks['forge'])->create('feat/invalid'))
+        ->toThrow(ConfigurationException::class, 'Forge server ID not configured');
+})->with([
+    'ausente' => [null],
+    'zero' => [0],
+    'negativo' => [-1],
+    'não numérico' => ['abc'],
+]);
+
 test('lança exceção de configuração para tipo de site inválido, sem criar recursos', function (): void {
     config(['forge-test-branches.site.project_type' => 'html']);
 

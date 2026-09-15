@@ -71,6 +71,21 @@ test('accepts an injected connector, bypassing token and organization resolution
     expect($mockClient->getLastPendingRequest()->headers()->get('Authorization'))->toBe('Bearer injected-token');
 });
 
+test('isConfigured reflete a presença de token e organização no config', function (?string $token, ?string $organization, bool $expected): void {
+    config([
+        'forge-test-branches.forge_api_token' => $token,
+        'forge-test-branches.organization' => $organization,
+    ]);
+
+    expect(ForgeClient::isConfigured())->toBe($expected);
+})->with([
+    'ambos presentes' => ['token', 'org', true],
+    'token ausente' => [null, 'org', false],
+    'organização ausente' => ['token', null, false],
+    'token vazio' => ['', 'org', false],
+    'ambos ausentes' => [null, null, false],
+]);
+
 test('returns SiteResource instance', function (): void {
     $client = new ForgeClient('test-token', 'test-org');
 

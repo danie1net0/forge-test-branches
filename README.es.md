@@ -209,7 +209,7 @@ return [
 
     'site' => [
         'php_version' => env('FORGE_PHP_VERSION', 'php84'),
-        'project_type' => env('FORGE_PROJECT_TYPE', 'php'), // laravel, php, symfony, statamic, static-html, other
+        'project_type' => env('FORGE_PROJECT_TYPE', 'php'), // laravel, php, symfony, statamic, wordpress, phpmyadmin, nextjs, nuxtjs, static-html, other, custom
         'directory' => env('FORGE_WEB_DIRECTORY', '/public'),
         'isolated' => env('FORGE_ISOLATED', false),
     ],
@@ -623,7 +623,7 @@ Forge desactivó la API v1, por lo que la versión 2.x de este paquete se comuni
 1. Crea un nuevo token de API con los [scopes necesarios](#token-de-la-api-de-forge)
 2. Añade `FORGE_ORGANIZATION` a tu `.env` (y a las variables de CI/CD)
 3. Añade `'organization' => env('FORGE_ORGANIZATION')` a tu `config/forge-test-branches.php` publicado
-4. `FORGE_PROJECT_TYPE` ahora acepta los tipos de sitio de la v2 (`laravel`, `php`, `symfony`, `statamic`, `static-html`, `other`)
+4. `FORGE_PROJECT_TYPE` ahora acepta los tipos de sitio de la v2 (`laravel`, `php`, `symfony`, `statamic`, `wordpress`, `phpmyadmin`, `nextjs`, `nuxtjs`, `static-html`, `other`, `custom`)
 
 Si usas el cliente de Forge directamente: el repositorio git ahora se define al crear el sitio (`InstallGitRepositoryData` fue eliminado), los certificados se gestionan a través de `ForgeClient::domains()`, y `CreateSiteData`, `CreateDatabaseUserData`, `SiteData`, `DatabaseUserData` y `CertificateData` siguen los nombres de campo de la v2. `SiteResource::findByDomain()` ahora es `findByName()`; `getEnvironment()`/`updateEnvironment()` ahora son `getEnvironmentFile()`/`updateEnvironmentFile()`; `CertificateData::isActive()` ahora es `isReady()`. Las excepciones propias del paquete viven en `Ddr\ForgeTestBranches\Exceptions` (todas extienden `RuntimeException`, así que los bloques `catch (RuntimeException)` existentes siguen funcionando).
 
