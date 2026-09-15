@@ -5,7 +5,10 @@ declare(strict_types=1);
 use Ddr\ForgeTestBranches\Services\EnvironmentBuilder;
 
 beforeEach(function (): void {
-    config(['forge-test-branches.forge_api_token' => 'fake-token']);
+    config([
+        'forge-test-branches.forge_api_token' => 'fake-token',
+        'forge-test-branches.organization' => 'test-org',
+    ]);
 
     $builder = Mockery::mock(EnvironmentBuilder::class);
     $builder->shouldReceive('find')->andReturnNull();

@@ -32,14 +32,13 @@ The package manages the complete lifecycle of review environments:
 
 **Creation**
 
-1. Creates a site on Forge with domain based on branch name
-2. Installs git repository on the specified branch
-3. Creates database with configurable prefix
-4. Creates database user with access only to the created database
-5. Configures custom environment variables
-6. Runs deploy script (migrations, composer, npm)
-7. Sets up Let's Encrypt SSL certificate
-8. Enables quick deploy (optional)
+1. Creates database with configurable prefix
+2. Creates database user with access only to the created database
+3. Creates a site on Forge with domain based on branch name and the git repository on the specified branch
+4. Configures custom environment variables
+5. Runs deploy script (migrations, composer, npm)
+6. Sets up Let's Encrypt SSL certificate
+7. Enables quick deploy (optional)
 
 **Destruction**
 
@@ -150,7 +149,7 @@ Branch deleted → Webhook triggers → Site + DB removed
 
 - PHP 8.2+
 - Laravel 11+
-- Laravel Forge account with API Token
+- Laravel Forge account with an API token for the [Forge API v2](https://forge.laravel.com/docs/api-reference/introduction)
 
 ## Installation
 
@@ -176,6 +175,7 @@ Add to `.env`:
 
 ```env
 FORGE_API_TOKEN=your-forge-token
+FORGE_ORGANIZATION=your-organization-slug
 FORGE_SERVER_ID=123456
 FORGE_REVIEW_DOMAIN=review.mysite.com
 FORGE_GIT_PROVIDER=gitlab
@@ -187,6 +187,7 @@ Full configuration in `config/forge-test-branches.php`:
 ```php
 return [
     'forge_api_token' => env('FORGE_API_TOKEN'),
+    'organization' => env('FORGE_ORGANIZATION'),
     'server_id' => env('FORGE_SERVER_ID'),
 
     'domain' => [
@@ -209,7 +210,7 @@ return [
 
     'site' => [
         'php_version' => env('FORGE_PHP_VERSION', 'php84'),
-        'project_type' => env('FORGE_PROJECT_TYPE', 'php'),
+        'project_type' => env('FORGE_PROJECT_TYPE', 'php'), // laravel, php, symfony, statamic, wordpress, phpmyadmin, nextjs, nuxtjs, static-html, other, custom
         'directory' => env('FORGE_WEB_DIRECTORY', '/public'),
         'isolated' => env('FORGE_ISOLATED', false),
     ],
@@ -233,6 +234,30 @@ return [
     ],
 ];
 ```
+
+### Forge API token
+
+The package uses the Forge API v2. Create a token at [forge.laravel.com/profile/api](https://forge.laravel.com/profile/api) with the following scopes:
+
+| Scope                     | Used to                                    |
+| ------------------------- | ------------------------------------------ |
+| `server:view`             | List sites, databases and database users   |
+| `site:create`             | Create sites                               |
+| `site:delete`             | Delete sites                               |
+| `site:manage-deploys`     | Deploy, update deploy script, quick deploy |
+| `site:manage-environment` | Update the site `.env`                     |
+| `site:meta`               | List site domains                          |
+| `site:manage-ssl`         | Create Let's Encrypt certificates          |
+| `server:create-databases` | Create databases and database users        |
+| `server:delete-databases` | Delete databases and database users        |
+
+Every request is scoped to an organization. `FORGE_ORGANIZATION` is the organization slug, visible in the URL when you're signed in to Forge (`forge.laravel.com/{organization}/...`). It can also be listed via the API, but that requires the extra `organization:view` scope:
+
+```bash
+curl -H "Authorization: Bearer $FORGE_API_TOKEN" -H "Accept: application/json" https://forge.laravel.com/api/orgs
+```
+
+Run `php artisan forge-test-branches:test-connection` to validate the token, organization and server.
 
 ## Usage
 
@@ -398,6 +423,7 @@ jobs:
             - name: Create Review Environment
               env:
                   FORGE_API_TOKEN: ${{ secrets.FORGE_API_TOKEN }}
+                  FORGE_ORGANIZATION: ${{ secrets.FORGE_ORGANIZATION }}
                   FORGE_SERVER_ID: ${{ secrets.FORGE_SERVER_ID }}
                   FORGE_REVIEW_DOMAIN: ${{ secrets.FORGE_REVIEW_DOMAIN }}
                   FORGE_GIT_REPOSITORY: ${{ github.repository }}
@@ -530,7 +556,8 @@ FORGE_SEED_CLASS=ReviewSeeder
 
 Check:
 
-- `FORGE_API_TOKEN` is correct
+- `FORGE_API_TOKEN` is a Forge API v2 token with the [required scopes](#forge-api-token)
+- `FORGE_ORGANIZATION` is the slug of the organization that owns the server
 - `FORGE_SERVER_ID` exists and is accessible
 - Base domain is configured in DNS
 
@@ -593,6 +620,19 @@ Certificate is automatically generated after site creation. If it fails:
 
 - Check if domain points to the server
 - Wait for DNS propagation (a few minutes)
+
+## Upgrading from 1.x (Forge API v1)
+
+Forge shut down the v1 API, so version 2.x of this package talks to the Forge API v2:
+
+1. Create a new API token with the [required scopes](#forge-api-token)
+2. Add `FORGE_ORGANIZATION` to your `.env` (and CI/CD variables)
+3. Add `'organization' => env('FORGE_ORGANIZATION')` to your published `config/forge-test-branches.php`
+4. `FORGE_PROJECT_TYPE` now accepts the v2 site types (`laravel`, `php`, `symfony`, `statamic`, `wordpress`, `phpmyadmin`, `nextjs`, `nuxtjs`, `static-html`, `other`, `custom`)
+
+If you use the Forge client directly: the git repository is now defined when the site is created (`InstallGitRepositoryData` was removed), certificates are managed through `ForgeClient::domains()`, and `CreateSiteData`, `CreateDatabaseUserData`, `SiteData`, `DatabaseUserData` and `CertificateData` follow the v2 field names. `SiteResource::findByDomain()` is now `findByName()`; `getEnvironment()`/`updateEnvironment()` are now `getEnvironmentFile()`/`updateEnvironmentFile()`; `CertificateData::isActive()` is now `isReady()`. The package's own exceptions live under `Ddr\ForgeTestBranches\Exceptions` (all extend `RuntimeException`, so existing `catch (RuntimeException)` blocks keep working).
+
+New config keys: `FORGE_ZERO_DOWNTIME_DEPLOYMENTS` (default `false` — Forge enables zero-downtime deploys by default for new sites, but the generated script doesn't use its release macros) and `FORGE_SSL_VERIFICATION_METHOD` (default `http-01`).
 
 ## Testing
 

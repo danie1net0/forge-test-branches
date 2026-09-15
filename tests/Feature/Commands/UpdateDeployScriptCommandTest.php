@@ -21,42 +21,15 @@ test('atualiza script de deploy do ambiente existente', function (): void {
     $databaseResource = Mockery::mock(DatabaseResource::class);
     $databaseUserResource = Mockery::mock(DatabaseUserResource::class);
 
-    $siteResource->shouldReceive('findByDomain')
+    $siteResource->shouldReceive('findByName')
         ->once()
         ->with(12345, 'feat-test.review.example.com')
         ->andReturn(new SiteData(
             id: 100,
             serverId: 12345,
             name: 'feat-test.review.example.com',
-            aliases: null,
-            directory: '/public',
-            wildcards: false,
             status: 'installed',
-            repository: 'user/repo',
-            repositoryProvider: 'gitlab',
             repositoryBranch: 'feat/test',
-            repositoryStatus: 'installed',
-            quickDeploy: true,
-            deploymentStatus: null,
-            projectType: 'php',
-            app: null,
-            appStatus: null,
-            hipchatRoom: null,
-            slackChannel: null,
-            telegramChatId: null,
-            telegramChatTitle: null,
-            teamsWebhookUrl: null,
-            discordWebhookUrl: null,
-            username: 'forge',
-            balancingStatus: null,
-            createdAt: now()->toDateTimeString(),
-            deploymentUrl: null,
-            isSecured: false,
-            phpVersion: 'php84',
-            tags: null,
-            failureDeploymentEmails: null,
-            telegramSecret: null,
-            webDirectory: '/public',
         ));
 
     $databaseResource->shouldReceive('findByName')->andReturnNull();
@@ -83,7 +56,10 @@ test('atualiza script de deploy do ambiente existente', function (): void {
 });
 
 test('falha quando branch não é especificada', function (): void {
-    config(['forge-test-branches.forge_api_token' => 'test-token']);
+    config([
+        'forge-test-branches.forge_api_token' => 'test-token',
+        'forge-test-branches.organization' => 'test-org',
+    ]);
 
     $this->artisan('forge-test-branches:update-script')
         ->expectsOutput('Branch not specified. Use --branch=branch-name or set CI_COMMIT_REF_NAME')
@@ -92,7 +68,7 @@ test('falha quando branch não é especificada', function (): void {
 
 test('falha quando ambiente não existe', function (): void {
     $siteResource = Mockery::mock(SiteResource::class);
-    $siteResource->shouldReceive('findByDomain')
+    $siteResource->shouldReceive('findByName')
         ->once()
         ->andReturnNull();
 
@@ -111,42 +87,15 @@ test('exibe erro quando atualização do script falha', function (): void {
     $databaseResource = Mockery::mock(DatabaseResource::class);
     $databaseUserResource = Mockery::mock(DatabaseUserResource::class);
 
-    $siteResource->shouldReceive('findByDomain')
+    $siteResource->shouldReceive('findByName')
         ->once()
         ->with(12345, 'feat-error.review.example.com')
         ->andReturn(new SiteData(
             id: 100,
             serverId: 12345,
             name: 'feat-error.review.example.com',
-            aliases: null,
-            directory: '/public',
-            wildcards: false,
             status: 'installed',
-            repository: 'user/repo',
-            repositoryProvider: 'gitlab',
             repositoryBranch: 'feat/error',
-            repositoryStatus: 'installed',
-            quickDeploy: true,
-            deploymentStatus: null,
-            projectType: 'php',
-            app: null,
-            appStatus: null,
-            hipchatRoom: null,
-            slackChannel: null,
-            telegramChatId: null,
-            telegramChatTitle: null,
-            teamsWebhookUrl: null,
-            discordWebhookUrl: null,
-            username: 'forge',
-            balancingStatus: null,
-            createdAt: now()->toDateTimeString(),
-            deploymentUrl: null,
-            isSecured: false,
-            phpVersion: 'php84',
-            tags: null,
-            failureDeploymentEmails: null,
-            telegramSecret: null,
-            webDirectory: '/public',
         ));
 
     $databaseResource->shouldReceive('findByName')->andReturnNull();

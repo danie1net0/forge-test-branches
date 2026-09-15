@@ -6,70 +6,85 @@ use Ddr\ForgeTestBranches\Data\CreateSiteData;
 
 test('cria instância com parâmetros obrigatórios', function (): void {
     $data = new CreateSiteData(
-        domain: 'test.example.com',
-        projectType: 'php',
+        name: 'test.example.com',
+        type: 'php',
     );
 
     expect($data)
-        ->domain->toBe('test.example.com')
-        ->projectType->toBe('php')
-        ->aliases->toBeNull()
-        ->directory->toBeNull();
+        ->name->toBe('test.example.com')
+        ->type->toBe('php')
+        ->domainMode->toBe('custom')
+        ->webDirectory->toBeNull()
+        ->repository->toBeNull()
+        ->zeroDowntimeDeployments->toBeFalse();
 });
 
 test('cria instância com todos os parâmetros', function (): void {
     $data = new CreateSiteData(
-        domain: 'test.example.com',
-        projectType: 'php',
-        aliases: ['alias.example.com'],
-        directory: '/public',
-        isolated: true,
-        username: 'testuser',
-        database: 'testdb',
-        phpVersion: 'php83',
-        nginxTemplate: 1,
+        name: 'test.example.com',
+        type: 'laravel',
+        domainMode: 'custom',
+        webDirectory: '/public',
+        isIsolated: true,
+        phpVersion: 'php84',
+        sourceControlProvider: 'github',
+        repository: 'user/repo',
+        branch: 'main',
+        installComposerDependencies: true,
+        zeroDowntimeDeployments: true,
+        nginxTemplateId: 1,
     );
 
     expect($data)
-        ->domain->toBe('test.example.com')
-        ->projectType->toBe('php')
-        ->aliases->toBe(['alias.example.com'])
-        ->directory->toBe('/public')
-        ->isolated->toBeTrue()
-        ->username->toBe('testuser')
-        ->database->toBe('testdb')
-        ->phpVersion->toBe('php83')
-        ->nginxTemplate->toBe(1);
+        ->name->toBe('test.example.com')
+        ->type->toBe('laravel')
+        ->webDirectory->toBe('/public')
+        ->isIsolated->toBeTrue()
+        ->phpVersion->toBe('php84')
+        ->sourceControlProvider->toBe('github')
+        ->repository->toBe('user/repo')
+        ->branch->toBe('main')
+        ->installComposerDependencies->toBeTrue()
+        ->zeroDowntimeDeployments->toBeTrue()
+        ->nginxTemplateId->toBe(1);
 });
 
-test('filtra valores null no toArray', function (): void {
+test('filtra valores null no toArray mas mantém zero_downtime_deployments explícito', function (): void {
     $data = new CreateSiteData(
-        domain: 'test.example.com',
-        projectType: 'php',
-        directory: '/public',
+        name: 'test.example.com',
+        type: 'php',
+        webDirectory: '/public',
     );
 
-    expect($data->toArray())->toHaveKeys(['domain', 'project_type', 'directory'])
-        ->not->toHaveKeys(['aliases', 'isolated', 'username', 'database', 'php_version', 'nginx_template']);
+    expect($data->toArray())->toBe([
+        'name' => 'test.example.com',
+        'type' => 'php',
+        'domain_mode' => 'custom',
+        'web_directory' => '/public',
+        'zero_downtime_deployments' => false,
+    ]);
 });
 
-test('mantém todos os valores não-null no toArray', function (): void {
+test('serializa campos com nomes da API v2', function (): void {
     $data = new CreateSiteData(
-        domain: 'test.example.com',
-        projectType: 'php',
-        aliases: ['alias.example.com'],
-        directory: '/public',
-        isolated: true,
-        username: 'testuser',
-        database: 'testdb',
-        phpVersion: 'php83',
-        nginxTemplate: 1,
+        name: 'test.example.com',
+        type: 'laravel',
+        webDirectory: '/public',
+        isIsolated: false,
+        phpVersion: 'php84',
+        sourceControlProvider: 'gitlab',
+        repository: 'user/repo',
+        branch: 'main',
+        installComposerDependencies: true,
     );
 
     expect($data->toArray())
-        ->toHaveKey('domain', 'test.example.com')
-        ->toHaveKey('project_type', 'php')
-        ->toHaveKey('directory', '/public')
-        ->toHaveKey('isolated', true)
-        ->toHaveKey('username', 'testuser');
+        ->toHaveKey('web_directory', '/public')
+        ->toHaveKey('is_isolated', false)
+        ->toHaveKey('php_version', 'php84')
+        ->toHaveKey('source_control_provider', 'gitlab')
+        ->toHaveKey('repository', 'user/repo')
+        ->toHaveKey('branch', 'main')
+        ->toHaveKey('install_composer_dependencies', true)
+        ->toHaveKey('zero_downtime_deployments', false);
 });

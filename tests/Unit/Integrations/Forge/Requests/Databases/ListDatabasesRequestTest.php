@@ -10,7 +10,7 @@ use Saloon\Http\Faking\{MockClient, MockResponse};
 test('resolve endpoint corretamente', function (): void {
     $request = new ListDatabasesRequest(123);
 
-    expect($request->resolveEndpoint())->toBe('/servers/123/databases');
+    expect($request->resolveEndpoint())->toBe('/servers/123/database/schemas');
 });
 
 test('usa método GET', function (): void {
@@ -19,27 +19,21 @@ test('usa método GET', function (): void {
     expect($request->getMethod()->value)->toBe('GET');
 });
 
+test('filtra pelo nome', function (): void {
+    $request = new ListDatabasesRequest(123)->filterByName('db_one');
+
+    expect($request->query()->get('filter[name]'))->toBe('db_one');
+});
+
 test('lista databases e retorna array de DTOs', function (): void {
     $mockClient = new MockClient([
-        ListDatabasesRequest::class => MockResponse::make([
-            'databases' => [
-                [
-                    'id' => 1,
-                    'name' => 'db_one',
-                    'status' => 'installed',
-                    'created_at' => '2024-01-01 00:00:00',
-                ],
-                [
-                    'id' => 2,
-                    'name' => 'db_two',
-                    'status' => 'installed',
-                    'created_at' => '2024-01-02 00:00:00',
-                ],
-            ],
-        ]),
+        ListDatabasesRequest::class => MockResponse::make(forgeCollection([
+            forgeResource('databases', 1, ['name' => 'db_one', 'status' => 'installed', 'created_at' => '2025-07-29T09:00:00Z']),
+            forgeResource('databases', 2, ['name' => 'db_two', 'status' => 'installed', 'created_at' => '2025-07-30T09:00:00Z']),
+        ])),
     ]);
 
-    $connector = new ForgeConnector('test-token');
+    $connector = new ForgeConnector('test-token', 'test-org');
     $connector->withMockClient($mockClient);
 
     $request = new ListDatabasesRequest(123);
@@ -58,17 +52,14 @@ test('lista databases e retorna array de DTOs', function (): void {
 
 test('retorna array vazio quando não há databases', function (): void {
     $mockClient = new MockClient([
-        ListDatabasesRequest::class => MockResponse::make([
-            'databases' => null,
-        ]),
+        ListDatabasesRequest::class => MockResponse::make(forgeCollection([])),
     ]);
 
-    $connector = new ForgeConnector('test-token');
+    $connector = new ForgeConnector('test-token', 'test-org');
     $connector->withMockClient($mockClient);
 
     $request = new ListDatabasesRequest(123);
     $response = $connector->send($request);
-    $result = $request->createDtoFromResponse($response);
 
-    expect($result)->toBeEmpty();
+    expect($request->createDtoFromResponse($response))->toBeEmpty();
 });

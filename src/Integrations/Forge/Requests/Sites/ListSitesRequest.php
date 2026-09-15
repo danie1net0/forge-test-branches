@@ -5,12 +5,15 @@ declare(strict_types=1);
 namespace Ddr\ForgeTestBranches\Integrations\Forge\Requests\Sites;
 
 use Ddr\ForgeTestBranches\Data\SiteData;
-use Saloon\Enums\Method;
-use Saloon\Http\{Request, Response};
+use Ddr\ForgeTestBranches\Integrations\Forge\Requests\Concerns\FiltersByName;
+use Ddr\ForgeTestBranches\Integrations\Forge\Requests\PaginatedRequest;
 
-class ListSitesRequest extends Request
+/**
+ * @extends PaginatedRequest<SiteData>
+ */
+class ListSitesRequest extends PaginatedRequest
 {
-    protected Method $method = Method::GET;
+    use FiltersByName;
 
     public function __construct(
         protected int $serverId,
@@ -22,14 +25,15 @@ class ListSitesRequest extends Request
         return "/servers/{$this->serverId}/sites";
     }
 
-    /** @return array<SiteData> */
-    public function createDtoFromResponse(Response $response): array
+    /** @param array<string, mixed> $attributes */
+    protected function createItem(array $attributes): SiteData
     {
-        $sites = $response->json('sites') ?? [];
+        return SiteData::from($attributes);
+    }
 
-        return array_map(
-            fn (array $site): SiteData => SiteData::from(array_merge($site, ['server_id' => $this->serverId])),
-            $sites
-        );
+    /** @return array<string, int> */
+    protected function parentAttributes(): array
+    {
+        return ['server_id' => $this->serverId];
     }
 }

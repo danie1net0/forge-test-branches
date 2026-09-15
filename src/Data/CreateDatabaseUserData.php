@@ -16,7 +16,7 @@ class CreateDatabaseUserData extends Data
         public string $name,
         public string $password,
         /** @var array<int> */
-        public array $databases = [],
+        public array $databaseIds = [],
     ) {
     }
 }

@@ -13,35 +13,32 @@ test('creates instance with required parameters', function (): void {
     expect($data)
         ->name->toBe('review_user')
         ->password->toBe('secret123')
-        ->databases->toBe([]);
+        ->databaseIds->toBe([]);
 });
 
-test('creates instance with databases', function (): void {
+test('creates instance with database ids', function (): void {
     $data = new CreateDatabaseUserData(
         name: 'review_user',
         password: 'secret123',
-        databases: [789, 790],
+        databaseIds: [789, 790],
     );
 
     expect($data)
         ->name->toBe('review_user')
         ->password->toBe('secret123')
-        ->databases->toBe([789, 790]);
+        ->databaseIds->toBe([789, 790]);
 });
 
 test('serializes to array with correct field names for Forge API', function (): void {
     $data = new CreateDatabaseUserData(
         name: 'review_user',
         password: 'secret123',
-        databases: [789],
+        databaseIds: [789],
     );
 
-    $array = $data->toArray();
-
-    expect($array)
-        ->toHaveKey('name')
-        ->toHaveKey('password')
-        ->toHaveKey('databases')
-        ->and($array['name'])->toBe('review_user')
-        ->and($array['password'])->toBe('secret123');
+    expect($data->toArray())->toBe([
+        'name' => 'review_user',
+        'password' => 'secret123',
+        'database_ids' => [789],
+    ]);
 });

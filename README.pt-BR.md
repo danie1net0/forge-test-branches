@@ -31,14 +31,13 @@ O pacote gerencia o ciclo completo de ambientes de review:
 
 **Criação**
 
-1. Cria um site no Forge com domínio baseado no nome da branch
-2. Instala o repositório git na branch especificada
-3. Cria banco de dados com prefixo configurável
-4. Cria usuário de banco com acesso apenas ao banco criado
-5. Configura variáveis de ambiente customizadas
-6. Executa script de deploy (migrations, composer, npm)
-7. Configura certificado SSL Let's Encrypt
-8. Habilita quick deploy (opcional)
+1. Cria banco de dados com prefixo configurável
+2. Cria usuário de banco com acesso apenas ao banco criado
+3. Cria um site no Forge com domínio baseado no nome da branch e o repositório git na branch especificada
+4. Configura variáveis de ambiente customizadas
+5. Executa script de deploy (migrations, composer, npm)
+6. Configura certificado SSL Let's Encrypt
+7. Habilita quick deploy (opcional)
 
 **Destruição**
 
@@ -149,7 +148,7 @@ Branch deletada → Webhook dispara → Site + DB removidos
 
 - PHP 8.2+
 - Laravel 11+
-- Conta Laravel Forge com API Token
+- Conta Laravel Forge com um token de API para a [API v2 do Forge](https://forge.laravel.com/docs/api-reference/introduction)
 
 ## Instalação
 
@@ -175,6 +174,7 @@ Adicione ao `.env`:
 
 ```env
 FORGE_API_TOKEN=seu-token-forge
+FORGE_ORGANIZATION=slug-da-sua-organizacao
 FORGE_SERVER_ID=123456
 FORGE_REVIEW_DOMAIN=review.mysite.com
 FORGE_GIT_PROVIDER=gitlab
@@ -186,6 +186,7 @@ Configuração completa em `config/forge-test-branches.php`:
 ```php
 return [
     'forge_api_token' => env('FORGE_API_TOKEN'),
+    'organization' => env('FORGE_ORGANIZATION'),
     'server_id' => env('FORGE_SERVER_ID'),
 
     'domain' => [
@@ -208,7 +209,7 @@ return [
 
     'site' => [
         'php_version' => env('FORGE_PHP_VERSION', 'php84'),
-        'project_type' => env('FORGE_PROJECT_TYPE', 'php'),
+        'project_type' => env('FORGE_PROJECT_TYPE', 'php'), // laravel, php, symfony, statamic, wordpress, phpmyadmin, nextjs, nuxtjs, static-html, other, custom
         'directory' => env('FORGE_WEB_DIRECTORY', '/public'),
         'isolated' => env('FORGE_ISOLATED', false),
     ],
@@ -232,6 +233,30 @@ return [
     ],
 ];
 ```
+
+### Token da API do Forge
+
+O pacote usa a API v2 do Forge. Crie um token em [forge.laravel.com/profile/api](https://forge.laravel.com/profile/api) com os seguintes escopos:
+
+| Escopo                    | Usado para                                        |
+| ------------------------- | ------------------------------------------------- |
+| `server:view`             | Listar sites, bancos de dados e usuários de banco |
+| `site:create`             | Criar sites                                       |
+| `site:delete`             | Deletar sites                                     |
+| `site:manage-deploys`     | Deploy, atualizar script de deploy, quick deploy  |
+| `site:manage-environment` | Atualizar o `.env` do site                        |
+| `site:meta`               | Listar domínios do site                           |
+| `site:manage-ssl`         | Criar certificados Let's Encrypt                  |
+| `server:create-databases` | Criar bancos de dados e usuários de banco         |
+| `server:delete-databases` | Deletar bancos de dados e usuários de banco       |
+
+Toda requisição é vinculada a uma organização. `FORGE_ORGANIZATION` é o slug da organização, visível na URL quando você está logado no Forge (`forge.laravel.com/{organization}/...`). Também é possível listar via API, mas isso exige o escopo extra `organization:view`:
+
+```bash
+curl -H "Authorization: Bearer $FORGE_API_TOKEN" -H "Accept: application/json" https://forge.laravel.com/api/orgs
+```
+
+Execute `php artisan forge-test-branches:test-connection` para validar o token, a organização e o servidor.
 
 ## Uso
 
@@ -397,6 +422,7 @@ jobs:
             - name: Create Review Environment
               env:
                   FORGE_API_TOKEN: ${{ secrets.FORGE_API_TOKEN }}
+                  FORGE_ORGANIZATION: ${{ secrets.FORGE_ORGANIZATION }}
                   FORGE_SERVER_ID: ${{ secrets.FORGE_SERVER_ID }}
                   FORGE_REVIEW_DOMAIN: ${{ secrets.FORGE_REVIEW_DOMAIN }}
                   FORGE_GIT_REPOSITORY: ${{ github.repository }}
@@ -528,7 +554,8 @@ FORGE_SEED_CLASS=ReviewSeeder
 
 Verifique:
 
-- `FORGE_API_TOKEN` está correto
+- `FORGE_API_TOKEN` é um token da API v2 do Forge com os [escopos necessários](#token-da-api-do-forge)
+- `FORGE_ORGANIZATION` é o slug da organização dona do servidor
 - `FORGE_SERVER_ID` existe e é acessível
 - Domínio base está configurado no DNS
 
@@ -590,6 +617,19 @@ O certificado é gerado automaticamente após criação do site. Se falhar:
 
 - Verifique se domínio aponta para o servidor
 - Aguarde propagação DNS (alguns minutos)
+
+## Atualização a partir da 1.x (API v1 do Forge)
+
+O Forge desativou a API v1, então a versão 2.x deste pacote se comunica com a API v2 do Forge:
+
+1. Crie um novo token de API com os [escopos necessários](#token-da-api-do-forge)
+2. Adicione `FORGE_ORGANIZATION` ao seu `.env` (e às variáveis do CI/CD)
+3. Adicione `'organization' => env('FORGE_ORGANIZATION')` ao seu `config/forge-test-branches.php` publicado
+4. `FORGE_PROJECT_TYPE` agora aceita os tipos de site da v2 (`laravel`, `php`, `symfony`, `statamic`, `wordpress`, `phpmyadmin`, `nextjs`, `nuxtjs`, `static-html`, `other`, `custom`)
+
+Se você usa o client do Forge diretamente: o repositório git agora é definido na criação do site (`InstallGitRepositoryData` foi removido), os certificados são gerenciados via `ForgeClient::domains()`, e `CreateSiteData`, `CreateDatabaseUserData`, `SiteData`, `DatabaseUserData` e `CertificateData` seguem os nomes de campos da v2. `SiteResource::findByDomain()` agora é `findByName()`; `getEnvironment()`/`updateEnvironment()` agora são `getEnvironmentFile()`/`updateEnvironmentFile()`; `CertificateData::isActive()` agora é `isReady()`. As exceções próprias do pacote ficam em `Ddr\ForgeTestBranches\Exceptions` (todas estendem `RuntimeException`, então blocos `catch (RuntimeException)` existentes continuam funcionando).
+
+Novas chaves de config: `FORGE_ZERO_DOWNTIME_DEPLOYMENTS` (padrão `false` — o Forge liga o zero-downtime deploy por padrão em sites novos, mas o script gerado não usa as macros de release exigidas) e `FORGE_SSL_VERIFICATION_METHOD` (padrão `http-01`).
 
 ## Testes
 

@@ -5,12 +5,15 @@ declare(strict_types=1);
 namespace Ddr\ForgeTestBranches\Integrations\Forge\Requests\Databases;
 
 use Ddr\ForgeTestBranches\Data\DatabaseData;
-use Saloon\Enums\Method;
-use Saloon\Http\{Request, Response};
+use Ddr\ForgeTestBranches\Integrations\Forge\Requests\Concerns\FiltersByName;
+use Ddr\ForgeTestBranches\Integrations\Forge\Requests\PaginatedRequest;
 
-class ListDatabasesRequest extends Request
+/**
+ * @extends PaginatedRequest<DatabaseData>
+ */
+class ListDatabasesRequest extends PaginatedRequest
 {
-    protected Method $method = Method::GET;
+    use FiltersByName;
 
     public function __construct(
         protected int $serverId,
@@ -19,17 +22,18 @@ class ListDatabasesRequest extends Request
 
     public function resolveEndpoint(): string
     {
-        return "/servers/{$this->serverId}/databases";
+        return "/servers/{$this->serverId}/database/schemas";
     }
 
-    /** @return array<DatabaseData> */
-    public function createDtoFromResponse(Response $response): array
+    /** @param array<string, mixed> $attributes */
+    protected function createItem(array $attributes): DatabaseData
     {
-        $databases = $response->json('databases') ?? [];
+        return DatabaseData::from($attributes);
+    }
 
-        return array_map(
-            fn (array $database): DatabaseData => DatabaseData::from(array_merge($database, ['server_id' => $this->serverId])),
-            $databases
-        );
+    /** @return array<string, int> */
+    protected function parentAttributes(): array
+    {
+        return ['server_id' => $this->serverId];
     }
 }

@@ -7,7 +7,10 @@ use Ddr\ForgeTestBranches\Data\EnvironmentData;
 use Ddr\ForgeTestBranches\Services\EnvironmentBuilder;
 
 beforeEach(function (): void {
-    config(['forge-test-branches.forge_api_token' => 'fake-token']);
+    config([
+        'forge-test-branches.forge_api_token' => 'fake-token',
+        'forge-test-branches.organization' => 'test-org',
+    ]);
     config(['forge-test-branches.webhook.secret' => 'test-secret']);
 });
 
@@ -76,6 +79,44 @@ test('retorna ambiente não encontrado quando branch não existe', function (): 
     ])
         ->assertOk()
         ->assertJson(['message' => 'Environment not found']);
+});
+
+test('retorna erro genérico sem tentar destruir quando a busca do ambiente falha', function (): void {
+    $builder = Mockery::mock(EnvironmentBuilder::class);
+    $builder->shouldReceive('find')
+        ->once()
+        ->with('feat/lookup-error')
+        ->andThrow(new RuntimeException('Timeout waiting for site installation'));
+    $builder->shouldNotReceive('destroy');
+
+    $this->app->instance(EnvironmentBuilder::class, $builder);
+
+    postGitLabWebhook($this, [
+        'ref' => 'refs/heads/feat/lookup-error',
+        'after' => '0000000000000000000000000000000000000000',
+    ])
+        ->assertStatus(500)
+        ->assertJson(['message' => 'Error finding environment'])
+        ->assertJsonMissing(['error']);
+});
+
+test('retorna 500 sem consultar o ambiente quando o pacote está mal configurado', function (): void {
+    config(['forge-test-branches.organization' => null]);
+
+    postGitLabWebhook($this, [
+        'ref' => 'refs/heads/feat/whatever',
+        'after' => '0000000000000000000000000000000000000000',
+    ])
+        ->assertStatus(500)
+        ->assertJson(['message' => 'Package misconfigured']);
+});
+
+test('não retorna mal configurado para eventos que já foram ignorados antes de checar a config', function (): void {
+    config(['forge-test-branches.organization' => null]);
+
+    postGitLabWebhook($this, [], 'Merge Request Hook')
+        ->assertOk()
+        ->assertJson(['message' => 'Event ignored']);
 });
 
 test('destrói ambiente ao receber webhook de deleção', function (): void {

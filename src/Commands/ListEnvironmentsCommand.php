@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Ddr\ForgeTestBranches\Commands;
 
+use Ddr\ForgeTestBranches\Commands\Concerns\ResolvesForgeDependencies;
 use Ddr\ForgeTestBranches\Data\EnvironmentData;
 use Ddr\ForgeTestBranches\Services\{EnvironmentBuilder, RemoteBranchResolver};
 use Illuminate\Console\Command;
@@ -11,6 +12,8 @@ use Throwable;
 
 class ListEnvironmentsCommand extends Command
 {
+    use ResolvesForgeDependencies;
+
     protected $signature = 'forge-test-branches:list
         {--orphans : Show only orphaned environments (branch no longer exists on remote)}
         {--destroy-orphans : Destroy all orphaned environments}
@@ -18,9 +21,15 @@ class ListEnvironmentsCommand extends Command
 
     protected $description = 'Lists review environments on the server';
 
-    public function handle(EnvironmentBuilder $builder, RemoteBranchResolver $remoteBranchResolver): int
+    public function handle(RemoteBranchResolver $remoteBranchResolver): int
     {
         $this->info('Fetching review environments...');
+
+        $builder = $this->resolveOrFail(EnvironmentBuilder::class);
+
+        if ($builder === null) {
+            return self::FAILURE;
+        }
 
         try {
             $environments = $builder->listAll();

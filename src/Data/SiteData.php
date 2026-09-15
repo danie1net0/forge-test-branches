@@ -4,51 +4,73 @@ declare(strict_types=1);
 
 namespace Ddr\ForgeTestBranches\Data;
 
+use Ddr\ForgeTestBranches\Data\Contracts\HasNameAttribute;
+use Ddr\ForgeTestBranches\Integrations\Forge\Enums\{RepositoryStatus, SiteStatus};
 use Spatie\LaravelData\Attributes\MapInputName;
 use Spatie\LaravelData\Data;
 use Spatie\LaravelData\Mappers\SnakeCaseMapper;
 
 #[MapInputName(SnakeCaseMapper::class)]
-class SiteData extends Data
+class SiteData extends Data implements HasNameAttribute
 {
-    /**
-     * @param array<string>|null $aliases
-     * @param array<string>|null $tags
-     * @param array<string>|null $failureDeploymentEmails
-     */
     public function __construct(
         public int $id,
         public int $serverId,
         public string $name,
-        public ?array $aliases,
-        public string $directory,
-        public bool $wildcards,
         public string $status,
-        public ?string $repository,
-        public ?string $repositoryProvider,
-        public ?string $repositoryBranch,
-        public ?string $repositoryStatus,
-        public bool $quickDeploy,
-        public ?string $deploymentStatus,
-        public string $projectType,
-        public ?string $app,
-        public ?string $appStatus,
-        public ?string $hipchatRoom,
-        public ?string $slackChannel,
-        public ?int $telegramChatId,
-        public ?string $telegramChatTitle,
-        public ?string $teamsWebhookUrl,
-        public ?string $discordWebhookUrl,
-        public string $username,
-        public ?string $balancingStatus,
-        public string $createdAt,
-        public ?string $deploymentUrl,
-        public bool $isSecured,
-        public ?string $phpVersion,
-        public ?array $tags,
-        public ?array $failureDeploymentEmails,
-        public ?string $telegramSecret,
-        public ?string $webDirectory,
+        public ?string $url = null,
+        public ?string $user = null,
+        public ?string $webDirectory = null,
+        public ?string $phpVersion = null,
+        public ?string $deploymentStatus = null,
+        public ?bool $quickDeploy = null,
+        public bool $isolated = false,
+        #[MapInputName('repository.provider')]
+        public ?string $repositoryProvider = null,
+        #[MapInputName('repository.url')]
+        public ?string $repositoryUrl = null,
+        #[MapInputName('repository.branch')]
+        public ?string $repositoryBranch = null,
+        #[MapInputName('repository.status')]
+        public ?string $repositoryStatus = null,
+        public ?string $createdAt = null,
     ) {
+    }
+
+    public function getName(): string
+    {
+        return $this->name;
+    }
+
+    /**
+     * Whether the site and its repository finished installing. Deliberately
+     * ignores the deployment status: the initial deploy triggered right
+     * after installation can legitimately take longer than the install
+     * itself, and should not block the environment from being considered
+     * ready.
+     */
+    public function isInstalled(): bool
+    {
+        $status = SiteStatus::tryFrom($this->status);
+
+        if ($status === null || $status->isPending() || $status->hasFailed()) {
+            return false;
+        }
+
+        if ($this->repositoryStatus === null) {
+            return false;
+        }
+
+        return RepositoryStatus::tryFrom($this->repositoryStatus)?->isReady() ?? false;
+    }
+
+    public function hasFailedInstallation(): bool
+    {
+        return SiteStatus::tryFrom($this->status)?->hasFailed() ?? false;
+    }
+
+    public function isBeingRemoved(): bool
+    {
+        return SiteStatus::tryFrom($this->status)?->isBeingRemoved() ?? false;
     }
 }

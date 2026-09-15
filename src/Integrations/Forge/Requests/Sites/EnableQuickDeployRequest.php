@@ -19,6 +19,6 @@ class EnableQuickDeployRequest extends Request
 
     public function resolveEndpoint(): string
     {
-        return "/servers/{$this->serverId}/sites/{$this->siteId}/deployment";
+        return "/servers/{$this->serverId}/sites/{$this->siteId}/deployments/push-to-deploy";
     }
 }

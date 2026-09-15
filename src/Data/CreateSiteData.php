@@ -13,17 +13,25 @@ use Spatie\LaravelData\Mappers\SnakeCaseMapper;
 #[MapOutputName(SnakeCaseMapper::class)]
 class CreateSiteData extends Data
 {
-    /** @param array<string>|null $aliases */
     public function __construct(
-        public string $domain,
-        public string $projectType,
-        public ?array $aliases = null,
-        public ?string $directory = null,
-        public ?bool $isolated = null,
-        public ?string $username = null,
-        public ?string $database = null,
+        public string $name,
+        public string $type,
+        public string $domainMode = 'custom',
+        public ?string $webDirectory = null,
+        public ?bool $isIsolated = null,
         public ?string $phpVersion = null,
-        public ?int $nginxTemplate = null,
+        public ?string $sourceControlProvider = null,
+        public ?string $repository = null,
+        public ?string $branch = null,
+        public ?bool $installComposerDependencies = null,
+        /**
+         * The default deploy script this package generates does not use the
+         * `$CREATE_RELEASE()` / `$ACTIVATE_RELEASE()` macros zero-downtime
+         * deployments require, so it must be explicitly disabled: Forge
+         * enables it by default for every new site.
+         */
+        public bool $zeroDowntimeDeployments = false,
+        public ?int $nginxTemplateId = null,
     ) {
     }
 
@@ -31,6 +39,6 @@ class CreateSiteData extends Data
     #[Override]
     public function toArray(): array
     {
-        return array_filter(parent::toArray(), fn ($value): bool => $value !== null);
+        return array_filter(parent::toArray(), fn (mixed $value): bool => $value !== null);
     }
 }

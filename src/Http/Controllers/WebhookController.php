@@ -5,15 +5,17 @@ declare(strict_types=1);
 namespace Ddr\ForgeTestBranches\Http\Controllers;
 
 use Ddr\ForgeTestBranches\Data\EnvironmentData;
+use Ddr\ForgeTestBranches\Integrations\Forge\ForgeClient;
 use Ddr\ForgeTestBranches\Logger;
 use Ddr\ForgeTestBranches\Services\EnvironmentBuilder;
+use Illuminate\Contracts\Container\Container;
 use Illuminate\Http\{JsonResponse, Request};
 use Illuminate\Routing\Controller;
 use Throwable;
 
 class WebhookController extends Controller
 {
-    public function handle(Request $request, EnvironmentBuilder $builder, Logger $logger): JsonResponse
+    public function handle(Request $request, Container $container, Logger $logger): JsonResponse
     {
         $eventHeader = $request->header('X-Gitlab-Event') ?? $request->header('X-GitHub-Event') ?? 'unknown';
         $logger->info('Webhook received', [
@@ -40,7 +42,21 @@ class WebhookController extends Controller
         $provider = $this->isGitHubRequest($request) ? 'github' : 'gitlab';
         $logger->info('Branch deletion detected', ['branch' => $branch, 'provider' => $provider]);
 
-        $environment = $builder->find($branch);
+        if (! ForgeClient::isConfigured()) {
+            $logger->error('Webhook: package misconfigured', ['error' => 'FORGE_API_TOKEN or FORGE_ORGANIZATION missing']);
+
+            return response()->json(['message' => 'Package misconfigured'], 500);
+        }
+
+        $builder = $container->make(EnvironmentBuilder::class);
+
+        try {
+            $environment = $builder->find($branch);
+        } catch (Throwable $throwable) {
+            $logger->error('Webhook: error finding environment', ['branch' => $branch, 'error' => $throwable->getMessage()]);
+
+            return response()->json(['message' => 'Error finding environment'], 500);
+        }
 
         if (! $environment instanceof EnvironmentData) {
             $logger->warning('Webhook: environment not found', ['branch' => $branch]);

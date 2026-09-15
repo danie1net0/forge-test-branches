@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Ddr\ForgeTestBranches\Commands;
 
+use Ddr\ForgeTestBranches\Commands\Concerns\ResolvesForgeDependencies;
 use Ddr\ForgeTestBranches\Data\EnvironmentData;
 use Ddr\ForgeTestBranches\Services\EnvironmentBuilder;
 use Illuminate\Console\Command;
@@ -11,17 +12,25 @@ use Throwable;
 
 class DestroyEnvironmentCommand extends Command
 {
+    use ResolvesForgeDependencies;
+
     protected $signature = 'forge-test-branches:destroy {--branch= : Branch name}';
 
     protected $description = 'Destroys the review environment for the specified branch';
 
-    public function handle(EnvironmentBuilder $builder): int
+    public function handle(): int
     {
         $branch = $this->option('branch') ?? getenv('CI_COMMIT_REF_NAME') ?: null;
 
         if (! is_string($branch)) {
             $this->error('Branch not specified. Use --branch=branch-name or set CI_COMMIT_REF_NAME');
 
+            return self::FAILURE;
+        }
+
+        $builder = $this->resolveOrFail(EnvironmentBuilder::class);
+
+        if ($builder === null) {
             return self::FAILURE;
         }
 

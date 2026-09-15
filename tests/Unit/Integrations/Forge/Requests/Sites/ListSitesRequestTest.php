@@ -19,50 +19,21 @@ test('usa método GET', function (): void {
     expect($request->getMethod()->value)->toBe('GET');
 });
 
-test('lista sites e retorna array de DTOs', function (): void {
-    $sitePayload = [
-        'name' => 'test.example.com',
-        'aliases' => null,
-        'directory' => '/public',
-        'wildcards' => false,
-        'status' => 'installed',
-        'repository' => 'user/repo',
-        'repository_provider' => 'gitlab',
-        'repository_branch' => 'main',
-        'repository_status' => 'installed',
-        'quick_deploy' => true,
-        'deployment_status' => null,
-        'project_type' => 'php',
-        'app' => null,
-        'app_status' => null,
-        'hipchat_room' => null,
-        'slack_channel' => null,
-        'telegram_chat_id' => null,
-        'telegram_chat_title' => null,
-        'teams_webhook_url' => null,
-        'discord_webhook_url' => null,
-        'username' => 'forge',
-        'balancing_status' => null,
-        'created_at' => '2024-01-01 00:00:00',
-        'deployment_url' => null,
-        'is_secured' => false,
-        'php_version' => 'php84',
-        'tags' => null,
-        'failure_deployment_emails' => null,
-        'telegram_secret' => null,
-        'web_directory' => '/public',
-    ];
+test('filtra pelo nome', function (): void {
+    $request = new ListSitesRequest(123)->filterByName('test.example.com');
 
+    expect($request->query()->get('filter[name]'))->toBe('test.example.com');
+});
+
+test('lista sites e retorna array de DTOs', function (): void {
     $mockClient = new MockClient([
-        ListSitesRequest::class => MockResponse::make([
-            'sites' => [
-                array_merge(['id' => 1], $sitePayload),
-                array_merge(['id' => 2], $sitePayload, ['name' => 'site2.example.com']),
-            ],
-        ]),
+        ListSitesRequest::class => MockResponse::make(forgeCollection([
+            forgeResource('sites', 1, forgeSiteAttributes('test.example.com')),
+            forgeResource('sites', 2, forgeSiteAttributes('site2.example.com')),
+        ])),
     ]);
 
-    $connector = new ForgeConnector('test-token');
+    $connector = new ForgeConnector('test-token', 'test-org');
     $connector->withMockClient($mockClient);
 
     $request = new ListSitesRequest(123);
@@ -81,17 +52,14 @@ test('lista sites e retorna array de DTOs', function (): void {
 
 test('retorna array vazio quando não há sites', function (): void {
     $mockClient = new MockClient([
-        ListSitesRequest::class => MockResponse::make([
-            'sites' => null,
-        ]),
+        ListSitesRequest::class => MockResponse::make(forgeCollection([])),
     ]);
 
-    $connector = new ForgeConnector('test-token');
+    $connector = new ForgeConnector('test-token', 'test-org');
     $connector->withMockClient($mockClient);
 
     $request = new ListSitesRequest(123);
     $response = $connector->send($request);
-    $result = $request->createDtoFromResponse($response);
 
-    expect($result)->toBeEmpty();
+    expect($request->createDtoFromResponse($response))->toBeEmpty();
 });

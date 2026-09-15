@@ -8,7 +8,10 @@ use Illuminate\Process\FakeProcessResult;
 use Illuminate\Support\Facades\Process;
 
 beforeEach(function (): void {
-    config(['forge-test-branches.forge_api_token' => 'fake-token']);
+    config([
+        'forge-test-branches.forge_api_token' => 'fake-token',
+        'forge-test-branches.organization' => 'test-org',
+    ]);
 });
 
 function makeListEnvData(string $branch, string $slug, int $siteId = 456): EnvironmentData

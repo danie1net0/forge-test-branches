@@ -7,7 +7,10 @@ use Ddr\ForgeTestBranches\ForgeTestBranches;
 use Ddr\ForgeTestBranches\Services\EnvironmentBuilder;
 
 beforeEach(function (): void {
-    config(['forge-test-branches.forge_api_token' => 'fake-token']);
+    config([
+        'forge-test-branches.forge_api_token' => 'fake-token',
+        'forge-test-branches.organization' => 'test-org',
+    ]);
 });
 
 function makeEnvironment(string $branch = 'feat/new', string $slug = 'feat-new'): EnvironmentData

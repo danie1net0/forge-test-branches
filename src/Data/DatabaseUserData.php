@@ -4,12 +4,14 @@ declare(strict_types=1);
 
 namespace Ddr\ForgeTestBranches\Data;
 
+use Ddr\ForgeTestBranches\Data\Contracts\HasNameAttribute;
+use Ddr\ForgeTestBranches\Integrations\Forge\Enums\InstallableResourceStatus;
 use Spatie\LaravelData\Attributes\MapInputName;
 use Spatie\LaravelData\Data;
 use Spatie\LaravelData\Mappers\SnakeCaseMapper;
 
 #[MapInputName(SnakeCaseMapper::class)]
-class DatabaseUserData extends Data
+class DatabaseUserData extends Data implements HasNameAttribute
 {
     public function __construct(
         public int $id,
@@ -17,8 +19,16 @@ class DatabaseUserData extends Data
         public string $name,
         public string $status,
         public string $createdAt,
-        /** @var array<int> */
-        public array $databases = [],
     ) {
+    }
+
+    public function getName(): string
+    {
+        return $this->name;
+    }
+
+    public function isInstalled(): bool
+    {
+        return InstallableResourceStatus::tryFrom($this->status)?->isInstalled() ?? false;
     }
 }

@@ -5,12 +5,15 @@ declare(strict_types=1);
 namespace Ddr\ForgeTestBranches\Integrations\Forge\Requests\Databases;
 
 use Ddr\ForgeTestBranches\Data\DatabaseUserData;
-use Saloon\Enums\Method;
-use Saloon\Http\{Request, Response};
+use Ddr\ForgeTestBranches\Integrations\Forge\Requests\Concerns\FiltersByName;
+use Ddr\ForgeTestBranches\Integrations\Forge\Requests\PaginatedRequest;
 
-class ListDatabaseUsersRequest extends Request
+/**
+ * @extends PaginatedRequest<DatabaseUserData>
+ */
+class ListDatabaseUsersRequest extends PaginatedRequest
 {
-    protected Method $method = Method::GET;
+    use FiltersByName;
 
     public function __construct(
         protected int $serverId,
@@ -19,17 +22,18 @@ class ListDatabaseUsersRequest extends Request
 
     public function resolveEndpoint(): string
     {
-        return "/servers/{$this->serverId}/database-users";
+        return "/servers/{$this->serverId}/database/users";
     }
 
-    /** @return array<DatabaseUserData> */
-    public function createDtoFromResponse(Response $response): array
+    /** @param array<string, mixed> $attributes */
+    protected function createItem(array $attributes): DatabaseUserData
     {
-        $users = $response->json('users') ?? [];
+        return DatabaseUserData::from($attributes);
+    }
 
-        return array_map(
-            fn (array $user): DatabaseUserData => DatabaseUserData::from(array_merge($user, ['server_id' => $this->serverId])),
-            $users
-        );
+    /** @return array<string, int> */
+    protected function parentAttributes(): array
+    {
+        return ['server_id' => $this->serverId];
     }
 }

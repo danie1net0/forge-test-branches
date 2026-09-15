@@ -8,36 +8,37 @@ use Ddr\ForgeTestBranches\Integrations\Forge\Requests\Databases\CreateDatabaseRe
 use Saloon\Http\Faking\{MockClient, MockResponse};
 
 test('resolve endpoint corretamente', function (): void {
-    $data = new CreateDatabaseData(name: 'test_db');
-    $request = new CreateDatabaseRequest(123, $data);
+    $request = new CreateDatabaseRequest(123, new CreateDatabaseData(name: 'test_db'));
 
-    expect($request->resolveEndpoint())->toBe('/servers/123/databases');
+    expect($request->resolveEndpoint())->toBe('/servers/123/database/schemas');
 });
 
 test('usa método POST', function (): void {
-    $data = new CreateDatabaseData(name: 'test_db');
-    $request = new CreateDatabaseRequest(123, $data);
+    $request = new CreateDatabaseRequest(123, new CreateDatabaseData(name: 'test_db'));
 
     expect($request->getMethod()->value)->toBe('POST');
 });
 
+test('envia nome do database no corpo', function (): void {
+    $request = new CreateDatabaseRequest(123, new CreateDatabaseData(name: 'test_db'));
+
+    expect($request->body()->all())->toBe(['name' => 'test_db']);
+});
+
 test('cria database e retorna DTO correto', function (): void {
     $mockClient = new MockClient([
-        CreateDatabaseRequest::class => MockResponse::make([
-            'database' => [
-                'id' => 1,
-                'name' => 'test_db',
-                'status' => 'installed',
-                'created_at' => '2024-01-01 00:00:00',
-            ],
-        ]),
+        CreateDatabaseRequest::class => MockResponse::make(forgeDocument(forgeResource('databases', 1, [
+            'name' => 'test_db',
+            'status' => 'installing',
+            'created_at' => '2025-07-29T09:00:00Z',
+            'updated_at' => '2025-07-29T09:00:00Z',
+        ])), 202),
     ]);
 
-    $connector = new ForgeConnector('test-token');
+    $connector = new ForgeConnector('test-token', 'test-org');
     $connector->withMockClient($mockClient);
 
-    $data = new CreateDatabaseData(name: 'test_db');
-    $request = new CreateDatabaseRequest(123, $data);
+    $request = new CreateDatabaseRequest(123, new CreateDatabaseData(name: 'test_db'));
     $response = $connector->send($request);
     $result = $request->createDtoFromResponse($response);
 
@@ -45,5 +46,5 @@ test('cria database e retorna DTO correto', function (): void {
         ->id->toBe(1)
         ->serverId->toBe(123)
         ->name->toBe('test_db')
-        ->status->toBe('installed');
+        ->status->toBe('installing');
 });

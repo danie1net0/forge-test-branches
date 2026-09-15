@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Ddr\ForgeTestBranches\Commands;
 
+use Ddr\ForgeTestBranches\Commands\Concerns\ResolvesForgeDependencies;
 use Ddr\ForgeTestBranches\Data\EnvironmentData;
 use Ddr\ForgeTestBranches\Integrations\Forge\ForgeClient;
 use Ddr\ForgeTestBranches\Services\{DeploymentScriptBuilder, EnvironmentBuilder};
@@ -12,20 +13,31 @@ use Throwable;
 
 class UpdateDeployScriptCommand extends Command
 {
+    use ResolvesForgeDependencies;
+
     protected $signature = 'forge-test-branches:update-script {--branch= : Branch name}';
 
     protected $description = 'Updates the deploy script for an existing review environment';
 
-    public function handle(
-        EnvironmentBuilder $builder,
-        DeploymentScriptBuilder $scriptBuilder,
-        ForgeClient $forge,
-    ): int {
+    public function handle(DeploymentScriptBuilder $scriptBuilder): int
+    {
         $branch = $this->option('branch') ?? getenv('CI_COMMIT_REF_NAME') ?: null;
 
         if (! is_string($branch)) {
             $this->error('Branch not specified. Use --branch=branch-name or set CI_COMMIT_REF_NAME');
 
+            return self::FAILURE;
+        }
+
+        $builder = $this->resolveOrFail(EnvironmentBuilder::class);
+
+        if ($builder === null) {
+            return self::FAILURE;
+        }
+
+        $forge = $this->resolveOrFail(ForgeClient::class);
+
+        if ($forge === null) {
             return self::FAILURE;
         }
 
